@@ -76,21 +76,40 @@ jobs:
             --notes "Build automatica del commit ${GITHUB_SHA::7}." \
             --prerelease --target "$GITHUB_SHA"
 
-  # Su un tag v* compila l'APK di release firmato con la chiave nei Secrets e pubblica la release.
+  # Pubblica una release firmata quando su main arriva un versionName non ancora rilasciato
+  # (oppure su un tag v*). Il tag viene creato da GitHub insieme alla release.
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
+      - name: Check version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          tag="v${version}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already published, nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-java@v5
+        if: steps.version.outputs.publish == 'true'
         with:
           distribution: temurin
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v5
+        if: steps.version.outputs.publish == 'true'
 
       - name: Decode signing key
+        if: steps.version.outputs.publish == 'true'
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
@@ -101,6 +120,7 @@ jobs:
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Build release APK
+        if: steps.version.outputs.publish == 'true'
         env:
           PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
           PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
@@ -122,15 +142,16 @@ jobs:
           echo "::error title=Build errors::${errors}"
 
       - name: Publish release
+        if: steps.version.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="${{ steps.version.outputs.tag }}"
           apk="myPodder-${tag}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           notes="docs/release-notes/${tag}.md"
           [ -f "$notes" ] || notes=/dev/null
-          gh release create "$tag" "$apk" --title "myPodder ${tag#v}" --notes-file "$notes" --latest
+          gh release create "$tag" "$apk" --title "myPodder ${tag#v}" --notes-file "$notes" --latest --target "$GITHUB_SHA"
 
       - name: Remove signing key
         if: always()

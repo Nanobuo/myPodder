@@ -16,6 +16,12 @@ interface PodcastDao {
     @Query("SELECT * FROM podcasts ORDER BY title COLLATE NOCASE")
     fun observeAll(): Flow<List<Podcast>>
 
+    @Query(
+        """SELECT p.*, (SELECT COUNT(*) FROM episodes e WHERE e.podcastId = p.id AND e.isNew = 1) AS newCount
+           FROM podcasts p ORDER BY p.title COLLATE NOCASE"""
+    )
+    fun observeAllWithNew(): Flow<List<PodcastWithNew>>
+
     @Query("SELECT * FROM podcasts")
     suspend fun getAll(): List<Podcast>
 

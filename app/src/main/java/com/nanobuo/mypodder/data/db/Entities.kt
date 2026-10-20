@@ -20,6 +20,12 @@ data class Podcast(
     val lastRefreshed: Long = 0,
 )
 
+/** Podcast con il numero di episodi nuovi, per il badge nella libreria. */
+data class PodcastWithNew(
+    @Embedded val podcast: Podcast,
+    val newCount: Int,
+)
+
 object DownloadState {
     const val NONE = 0
     const val QUEUED = 1

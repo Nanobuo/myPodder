@@ -9,6 +9,13 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
@@ -101,6 +108,16 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                             onOpen = { nav.navigate(PlayerRoute) { launchSingleTop = true } },
                         )
                     }
+                    // Senza barra di navigazione il mini-player resta sopra la barra dei gesti di sistema.
+                    if (nowPlaying.hasMedia && !onPlayer && !isTopLevel) {
+                        Spacer(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .navigationBarsPadding()
+                                .height(12.dp)
+                        )
+                    }
                     AnimatedVisibility(
                         visible = isTopLevel,
                         enter = expandVertically() + fadeIn(),
@@ -119,7 +136,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                                         }
                                     },
                                     icon = { Icon(t.icon, null) },
-                                    label = { Text(stringResource(t.label), maxLines = 1) },
+                                    label = { Text(stringResource(t.label), maxLines = 1, modifier = Modifier.padding(horizontal = 6.dp)) },
                                 )
                             }
                         }
@@ -163,7 +180,8 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                 }
                 composable<EpisodeRoute> {
                     EpisodeScreen(
-                        onBack = { nav.popBackStack() },
+                        // Indietro dalla scheda episodio torna sempre alla schermata iniziale.
+                        onBack = { if (!nav.popBackStack(LibraryRoute, inclusive = false)) nav.navigate(LibraryRoute) },
                         onPodcast = { nav.navigate(PodcastRoute(it)) },
                     )
                 }

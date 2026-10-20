@@ -1,6 +1,9 @@
 package com.nanobuo.mypodder.ui.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,7 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nanobuo.mypodder.R
-import com.nanobuo.mypodder.data.db.Podcast
+import com.nanobuo.mypodder.data.db.PodcastWithNew
 import com.nanobuo.mypodder.data.opml.OpmlStatus
 import com.nanobuo.mypodder.ui.components.Artwork
 import com.nanobuo.mypodder.ui.components.EmptyState
@@ -195,7 +198,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
+private fun PodcastGrid(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
@@ -203,7 +206,8 @@ private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        items(podcasts, key = { it.id }) { podcast ->
+        items(podcasts, key = { it.podcast.id }) { item ->
+            val podcast = item.podcast
             Column(
                 Modifier
                     .clickable { onPodcast(podcast.id) }
@@ -215,6 +219,14 @@ private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
                         .aspectRatio(1f)
                 ) {
                     Artwork(podcast.imageUrl, Modifier.fillMaxSize(), size = null, corner = 20.dp)
+                    if (item.newCount > 0) {
+                        NewBadge(
+                            item.newCount,
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(6.dp),
+                        )
+                    }
                 }
                 Text(
                     podcast.title,
@@ -229,9 +241,10 @@ private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
 }
 
 @Composable
-private fun PodcastList(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
+private fun PodcastList(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
-        items(podcasts, key = { it.id }) { podcast ->
+        items(podcasts, key = { it.podcast.id }) { item ->
+            val podcast = item.podcast
             ListItem(
                 headlineContent = { Text(podcast.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 supportingContent = if (podcast.author != null) {
@@ -240,6 +253,11 @@ private fun PodcastList(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
                     null
                 },
                 leadingContent = { Artwork(podcast.imageUrl, size = 56.dp) },
+                trailingContent = if (item.newCount > 0) {
+                    { NewBadge(item.newCount) }
+                } else {
+                    null
+                },
                 modifier = Modifier.clickable { onPodcast(podcast.id) },
             )
         }
@@ -257,5 +275,24 @@ private fun LatestEpisodes(items: List<com.nanobuo.mypodder.data.db.EpisodeItem>
             EpisodeRow(item, onClick = { onEpisode(item.episode.id) })
             HorizontalDivider(Modifier.padding(start = 84.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest)
         }
+    }
+}
+
+/** Badge con il numero di episodi nuovi non ancora visti. */
+@Composable
+private fun NewBadge(count: Int, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shape = RoundedCornerShape(50),
+        shadowElevation = 2.dp,
+        modifier = modifier,
+    ) {
+        Text(
+            if (count > 99) "99+" else count.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
     }
 }

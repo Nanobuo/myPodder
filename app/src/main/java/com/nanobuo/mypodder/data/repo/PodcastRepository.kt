@@ -40,6 +40,7 @@ class PodcastRepository @Inject constructor(
     private val chapterDao = db.chapterDao()
 
     val podcasts = podcastDao.observeAll()
+    val podcastsWithNew = podcastDao.observeAllWithNew()
 
     fun observe(id: Long) = podcastDao.observe(id)
     fun observeIdByUrl(url: String) = podcastDao.observeIdByUrl(url)

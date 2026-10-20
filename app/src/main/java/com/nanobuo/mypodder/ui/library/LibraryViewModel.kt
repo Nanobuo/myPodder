@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanobuo.mypodder.data.db.EpisodeItem
-import com.nanobuo.mypodder.data.db.Podcast
+import com.nanobuo.mypodder.data.db.PodcastWithNew
 import com.nanobuo.mypodder.data.opml.OpmlManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.repo.PodcastRepository
@@ -33,7 +33,7 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { settings.setLibraryGrid(!grid.value) }
     }
 
-    val podcasts: StateFlow<List<Podcast>?> = podcastRepository.podcasts
+    val podcasts: StateFlow<List<PodcastWithNew>?> = podcastRepository.podcastsWithNew
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val latest: StateFlow<List<EpisodeItem>> = episodeRepository.latest()

@@ -24,8 +24,8 @@ android {
         applicationId = "com.nanobuo.mypodder"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 10000
+        versionName = "1.0.0"
 
         buildConfigField("String", "PODCASTINDEX_KEY", "\"${secret("PODCASTINDEX_KEY")}\"")
         buildConfigField("String", "PODCASTINDEX_SECRET", "\"${secret("PODCASTINDEX_SECRET")}\"")
@@ -40,6 +40,16 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Chiave di release: arriva dai Secrets di GitHub (o da local.properties), mai dalla repo.
+        val releaseStore = secret("RELEASE_KEYSTORE_FILE")
+        if (releaseStore.isNotBlank()) {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = secret("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = secret("RELEASE_KEY_ALIAS")
+                keyPassword = secret("RELEASE_KEY_PASSWORD").ifBlank { secret("RELEASE_KEYSTORE_PASSWORD") }
+            }
+        }
     }
 
     buildTypes {
@@ -48,6 +58,7 @@ android {
             applicationIdSuffix = ".debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

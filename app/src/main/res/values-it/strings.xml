@@ -103,6 +103,7 @@
     <string name="skip_back_seconds">Indietro di %d secondi</string>
     <string name="skip_forward_seconds">Avanti di %d secondi</string>
     <string name="next_in_queue">Prossimo in coda</string>
+    <string name="up_next">Prossimi in coda</string>
     <string name="playback_speed">Velocità di riproduzione</string>
     <string name="sleep_timer">Timer di spegnimento</string>
     <string name="sleep_timer_short">Timer</string>

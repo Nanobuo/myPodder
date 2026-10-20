@@ -197,7 +197,7 @@ private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
                         .fillMaxWidth()
                         .aspectRatio(1f)
                 ) {
-                    Artwork(podcast.imageUrl, Modifier.fillMaxSize(), size = 400.dp, corner = 20.dp)
+                    Artwork(podcast.imageUrl, Modifier.fillMaxSize(), size = null, corner = 20.dp)
                 }
                 Text(
                     podcast.title,

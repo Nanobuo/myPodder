@@ -30,13 +30,14 @@ import coil3.compose.SubcomposeAsyncImage
 fun Artwork(
     url: String?,
     modifier: Modifier = Modifier,
-    size: Dp = 56.dp,
+    /** Lato della copertina; null = dimensione decisa dal [modifier]. */
+    size: Dp? = 56.dp,
     corner: Dp = 12.dp,
 ) {
     val shape = RoundedCornerShape(corner)
     Box(
         modifier
-            .size(size)
+            .then(if (size != null) Modifier.size(size) else Modifier)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center,
@@ -56,12 +57,12 @@ fun Artwork(
 }
 
 @Composable
-private fun ArtworkPlaceholder(size: Dp) {
+private fun ArtworkPlaceholder(size: Dp?) {
     Icon(
         Icons.Rounded.Podcasts,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(size / 2.5f),
+        modifier = if (size != null) Modifier.size(size / 2.5f) else Modifier.fillMaxSize(0.4f),
     )
 }
 

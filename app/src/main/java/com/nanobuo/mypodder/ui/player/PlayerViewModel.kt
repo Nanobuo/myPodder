@@ -51,6 +51,9 @@ class PlayerViewModel @Inject constructor(
 
     val position = connection.positionFlow()
 
+    val queue: StateFlow<List<EpisodeItem>> = episodes.queue
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val settings: StateFlow<AppSettings> = settingsRepository.state
 
     val sleepState: StateFlow<SleepState> = sleepTimer.state
@@ -71,6 +74,12 @@ class PlayerViewModel @Inject constructor(
 
     fun playNextInQueue() {
         viewModelScope.launch { episodes.nextInQueue()?.let { connection.play(it) } }
+    }
+
+    fun playFromQueue(id: Long) = connection.play(id)
+
+    fun removeFromQueue(id: Long) {
+        viewModelScope.launch { episodes.removeFromQueue(id) }
     }
 
     fun startSleep(minutes: Int) {

@@ -172,4 +172,6 @@
     <string name="badge_none">None</string>
     <string name="version">Version %s</string>
     <string name="manage_queue">Manage</string>
+    <string name="cover_colors">Colors from podcast artwork</string>
+    <string name="cover_colors_summary">The accent color follows the artwork of the podcast you are listening to or viewing</string>
 </resources>

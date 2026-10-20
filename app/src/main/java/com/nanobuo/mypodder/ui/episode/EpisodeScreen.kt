@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nanobuo.mypodder.R
+import com.nanobuo.mypodder.ui.theme.CoverTheme
 import com.nanobuo.mypodder.ui.components.Artwork
 import com.nanobuo.mypodder.ui.components.DownloadButton
 import com.nanobuo.mypodder.ui.components.EpisodeMenu
@@ -81,92 +82,94 @@ fun EpisodeScreen(
     val highlight = LocalPlaybackHighlight.current
     BackHandler(onBack = onBack)
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
-                },
-                actions = {
-                    item?.let {
-                        DownloadButton(it)
-                        EpisodeMenu(it, it.episode.id in highlight.queueIds)
+    CoverTheme(item?.podcastImage) {
+        Scaffold(
+            contentWindowInsets = WindowInsets(0),
+            topBar = {
+                TopAppBar(
+                    title = {},
+                    navigationIcon = {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
+                    },
+                    actions = {
+                        item?.let {
+                            DownloadButton(it)
+                            EpisodeMenu(it, it.episode.id in highlight.queueIds)
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            val current = item
+            if (current == null) {
+                LoadingBox(Modifier.padding(padding))
+                return@Scaffold
+            }
+            val ep = current.episode
+            val isCurrent = highlight.episodeId == ep.id
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Artwork(current.artwork, size = 112.dp, corner = 24.dp)
+                    Spacer(Modifier.width(16.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            current.podcastTitle,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { onPodcast(ep.podcastId) },
+                        )
+                        Text(ep.title, style = MaterialTheme.typography.titleLarge, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            listOf(formatDate(ep.pubDate), if (ep.durationMs > 0) formatDuration(ep.durationMs) else "")
+                                .filter { it.isNotEmpty() }.joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                },
-            )
-        },
-    ) { padding ->
-        val current = item
-        if (current == null) {
-            LoadingBox(Modifier.padding(padding))
-            return@Scaffold
-        }
-        val ep = current.episode
-        val isCurrent = highlight.episodeId == ep.id
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Artwork(current.artwork, size = 112.dp, corner = 24.dp)
-                Spacer(Modifier.width(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                }
+
+                Button(
+                    onClick = { if (isCurrent) actions.togglePlayPause() else actions.play(ep.id) },
+                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    val playing = isCurrent && highlight.isPlaying
+                    Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        current.podcastTitle,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { onPodcast(ep.podcastId) },
-                    )
-                    Text(ep.title, style = MaterialTheme.typography.titleLarge, maxLines = 4, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        listOf(formatDate(ep.pubDate), if (ep.durationMs > 0) formatDuration(ep.durationMs) else "")
-                            .filter { it.isNotEmpty() }.joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        when {
+                            playing -> stringResource(R.string.pause)
+                            ep.positionMs > 0 && !ep.completed -> stringResource(R.string.resume_from, formatClock(ep.positionMs))
+                            else -> stringResource(R.string.play)
+                        }
                     )
                 }
-            }
 
-            Button(
-                onClick = { if (isCurrent) actions.togglePlayPause() else actions.play(ep.id) },
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                val playing = isCurrent && highlight.isPlaying
-                Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    when {
-                        playing -> stringResource(R.string.pause)
-                        ep.positionMs > 0 && !ep.completed -> stringResource(R.string.resume_from, formatClock(ep.positionMs))
-                        else -> stringResource(R.string.play)
-                    }
-                )
-            }
+                if (chapters.isNotEmpty()) {
+                    val livePosition by viewModel.livePosition.collectAsStateWithLifecycle(initialValue = 0L)
+                    val position = if (isCurrent) livePosition else ep.positionMs
+                    val started = isCurrent || (ep.positionMs > 0 && !ep.completed)
+                    val currentIndex = if (started) chapters.indexOfLast { it.startMs <= position } else -1
+                    ChaptersSection(
+                        chapters = chapters,
+                        currentIndex = currentIndex,
+                        onSelect = { actions.play(ep.id, it.startMs) },
+                    )
+                }
 
-            if (chapters.isNotEmpty()) {
-                val livePosition by viewModel.livePosition.collectAsStateWithLifecycle(initialValue = 0L)
-                val position = if (isCurrent) livePosition else ep.positionMs
-                val started = isCurrent || (ep.positionMs > 0 && !ep.completed)
-                val currentIndex = if (started) chapters.indexOfLast { it.startMs <= position } else -1
-                ChaptersSection(
-                    chapters = chapters,
-                    currentIndex = currentIndex,
-                    onSelect = { actions.play(ep.id, it.startMs) },
-                )
+                ep.description?.takeIf { it.isNotBlank() }?.let { html ->
+                    Text(stringResource(R.string.description), style = MaterialTheme.typography.titleMedium)
+                    HtmlDescription(html, onSeek = { ms -> actions.play(ep.id, ms) })
+                }
+                Spacer(Modifier.size(24.dp))
             }
-
-            ep.description?.takeIf { it.isNotBlank() }?.let { html ->
-                Text(stringResource(R.string.description), style = MaterialTheme.typography.titleMedium)
-                HtmlDescription(html, onSeek = { ms -> actions.play(ep.id, ms) })
-            }
-            Spacer(Modifier.size(24.dp))
         }
     }
 }

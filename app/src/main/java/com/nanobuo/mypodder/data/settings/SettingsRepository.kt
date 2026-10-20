@@ -42,6 +42,7 @@ data class AppSettings(
     val libraryGrid: Boolean = true,
     val showRemaining: Boolean = true,
     val newBadge: NewBadgeStyle = NewBadgeStyle.DOT,
+    val coverColors: Boolean = false,
 )
 
 @Singleton
@@ -66,6 +67,7 @@ class SettingsRepository @Inject constructor(
         val libraryGrid = booleanPreferencesKey("library_grid")
         val showRemaining = booleanPreferencesKey("show_remaining")
         val newBadge = intPreferencesKey("new_badge")
+        val coverColors = booleanPreferencesKey("cover_colors")
     }
 
     private val defaults = AppSettings()
@@ -86,6 +88,7 @@ class SettingsRepository @Inject constructor(
             sleepMinutes = p[Keys.sleepMinutes] ?: defaults.sleepMinutes,
             libraryGrid = p[Keys.libraryGrid] ?: defaults.libraryGrid,
             showRemaining = p[Keys.showRemaining] ?: defaults.showRemaining,
+            coverColors = p[Keys.coverColors] ?: defaults.coverColors,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -117,4 +120,5 @@ class SettingsRepository @Inject constructor(
     suspend fun setLibraryGrid(v: Boolean) = set(Keys.libraryGrid, v)
     suspend fun setShowRemaining(v: Boolean) = set(Keys.showRemaining, v)
     suspend fun setNewBadge(v: NewBadgeStyle) = set(Keys.newBadge, v.ordinal)
+    suspend fun setCoverColors(v: Boolean) = set(Keys.coverColors, v)
 }

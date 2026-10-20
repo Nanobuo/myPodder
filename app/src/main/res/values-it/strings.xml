@@ -169,4 +169,6 @@
     <string name="badge_none">Nessuno</string>
     <string name="version">Versione %s</string>
     <string name="manage_queue">Gestisci</string>
+    <string name="cover_colors">Colori dalla copertina</string>
+    <string name="cover_colors_summary">Il colore d\'accento segue la copertina del podcast che ascolti o stai guardando</string>
 </resources>

@@ -132,6 +132,11 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 ) { v -> viewModel.update { setDynamicColor(v) } }
             }
 
+            SwitchRow(
+                stringResource(R.string.cover_colors),
+                stringResource(R.string.cover_colors_summary),
+                s.coverColors,
+            ) { v -> viewModel.update { setCoverColors(v) } }
             val badgeLabels = mapOf(
                 NewBadgeStyle.DOT to stringResource(R.string.badge_dot),
                 NewBadgeStyle.COUNT to stringResource(R.string.badge_count),

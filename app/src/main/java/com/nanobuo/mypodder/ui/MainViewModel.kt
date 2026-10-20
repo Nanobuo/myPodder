@@ -10,6 +10,10 @@ import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.ui.components.EpisodeActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -28,6 +32,14 @@ class MainViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val nowPlaying = player.state
+
+    /** Copertina del podcast in ascolto (non quella del capitolo, che cambia spesso). */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val nowPlayingCover: StateFlow<String?> = player.state.map { it.episodeId }.distinctUntilChanged()
+        .flatMapLatest { id -> id?.let { episodes.observe(it) } ?: flowOf(null) }
+        .map { it?.podcastImage ?: it?.artwork }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val queueIds: StateFlow<Set<Long>> = episodes.queueIds.map { it.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())

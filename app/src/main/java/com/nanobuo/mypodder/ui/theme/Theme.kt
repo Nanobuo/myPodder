@@ -1,6 +1,14 @@
 package com.nanobuo.mypodder.ui.theme
 
 import android.os.Build
+import com.materialkolor.dynamicColorScheme
+import com.materialkolor.PaletteStyle
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -79,23 +87,89 @@ fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
     ThemeMode.DARK -> true
 }
 
+/** Tema scuro attivo, per i temi locali generati dalle copertine. */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
+/** Se true, schermate e app prendono l'accento dalla copertina del podcast. */
+val LocalCoverColors = staticCompositionLocalOf { false }
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MyPodderTheme(
     darkTheme: Boolean,
     dynamicColor: Boolean,
+    coverColors: Boolean = false,
+    /** Colore estratto dalla copertina del podcast in ascolto (se l'opzione è attiva). */
+    seedColor: Color? = null,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colors: ColorScheme = when {
+    val base: ColorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> DarkColors
         else -> LightColors
     }
-    MaterialExpressiveTheme(
-        colorScheme = colors,
-        motionScheme = MotionScheme.expressive(),
-        content = content,
+    val target = if (seedColor != null) rememberCoverScheme(seedColor, darkTheme) else base
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme, LocalCoverColors provides coverColors) {
+        MaterialExpressiveTheme(
+            colorScheme = animateColorScheme(target),
+            motionScheme = MotionScheme.expressive(),
+            content = content,
+        )
+    }
+}
+
+/**
+ * Applica al contenuto i colori ricavati dalla copertina [imageUrl], se l'opzione è attiva.
+ * Finché il colore non è pronto (o non è adatto) resta il tema corrente.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun CoverTheme(imageUrl: String?, content: @Composable () -> Unit) {
+    if (!LocalCoverColors.current) {
+        content()
+        return
+    }
+    val seed = rememberCoverSeed(imageUrl)
+    val current = MaterialTheme.colorScheme
+    val target = if (seed != null) rememberCoverScheme(seed, LocalDarkTheme.current) else current
+    MaterialExpressiveTheme(colorScheme = animateColorScheme(target), content = content)
+}
+
+@Composable
+private fun rememberCoverScheme(seed: Color, dark: Boolean): ColorScheme =
+    // "Content" resta fedele al colore della copertina pur garantendo i contrasti di Material.
+    remember(seed, dark) { dynamicColorScheme(seedColor = seed, isDark = dark, style = PaletteStyle.Content) }
+
+/** Transizione morbida tra due schemi di colore. */
+@Composable
+private fun animateColorScheme(target: ColorScheme): ColorScheme {
+    val spec = tween<Color>(durationMillis = 450)
+    @Composable fun a(c: Color) = animateColorAsState(c, spec, label = "scheme").value
+    return target.copy(
+        primary = a(target.primary),
+        onPrimary = a(target.onPrimary),
+        primaryContainer = a(target.primaryContainer),
+        onPrimaryContainer = a(target.onPrimaryContainer),
+        secondary = a(target.secondary),
+        onSecondary = a(target.onSecondary),
+        secondaryContainer = a(target.secondaryContainer),
+        onSecondaryContainer = a(target.onSecondaryContainer),
+        tertiary = a(target.tertiary),
+        tertiaryContainer = a(target.tertiaryContainer),
+        onTertiaryContainer = a(target.onTertiaryContainer),
+        background = a(target.background),
+        surface = a(target.surface),
+        onSurface = a(target.onSurface),
+        onSurfaceVariant = a(target.onSurfaceVariant),
+        surfaceVariant = a(target.surfaceVariant),
+        surfaceContainerLowest = a(target.surfaceContainerLowest),
+        surfaceContainerLow = a(target.surfaceContainerLow),
+        surfaceContainer = a(target.surfaceContainer),
+        surfaceContainerHigh = a(target.surfaceContainerHigh),
+        surfaceContainerHighest = a(target.surfaceContainerHighest),
+        outline = a(target.outline),
+        outlineVariant = a(target.outlineVariant),
     )
 }

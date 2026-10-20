@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nanobuo.mypodder.ui.MainViewModel
 import com.nanobuo.mypodder.ui.nav.MyPodderApp
 import com.nanobuo.mypodder.ui.theme.MyPodderTheme
+import com.nanobuo.mypodder.ui.theme.rememberCoverSeed
 import com.nanobuo.mypodder.ui.theme.isDarkTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,7 +43,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by viewModel.settings.collectAsStateWithLifecycle()
             val s = settings ?: return@setContent
-            MyPodderTheme(darkTheme = isDarkTheme(s.theme), dynamicColor = s.dynamicColor) {
+            val coverUrl by viewModel.nowPlayingCover.collectAsStateWithLifecycle()
+            val seed = if (s.coverColors) rememberCoverSeed(coverUrl) else null
+            MyPodderTheme(
+                darkTheme = isDarkTheme(s.theme),
+                dynamicColor = s.dynamicColor,
+                coverColors = s.coverColors,
+                seedColor = seed,
+            ) {
                 MyPodderApp(viewModel, openPlayerRequests.intValue)
             }
         }

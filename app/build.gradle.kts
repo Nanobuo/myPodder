@@ -112,6 +112,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.reorderable)
+    implementation(libs.materialkolor)
 
     testImplementation(libs.junit)
 }

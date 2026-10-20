@@ -52,7 +52,7 @@ jobs:
           mkdir -p out
           cp app/build/outputs/apk/debug/app-debug.apk "out/myPodder-debug-${GITHUB_SHA::7}.apk"
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: myPodder-debug
           path: out/*.apk

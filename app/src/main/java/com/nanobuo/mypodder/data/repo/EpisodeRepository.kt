@@ -23,6 +23,8 @@ class EpisodeRepository @Inject constructor(
     val downloadedBytes = episodeDao.observeDownloadedBytes()
 
     fun latest(limit: Int = 150) = episodeDao.observeLatest(limit)
+    fun history(limit: Int = 300) = episodeDao.observeHistory(limit)
+    suspend fun clearHistory() = episodeDao.clearHistory()
     fun forPodcast(podcastId: Long) = episodeDao.observeForPodcast(podcastId)
     fun observe(id: Long) = episodeDao.observeItem(id)
     suspend fun get(id: Long) = episodeDao.getItem(id)

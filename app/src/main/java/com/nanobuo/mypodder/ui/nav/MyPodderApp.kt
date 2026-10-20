@@ -58,6 +58,7 @@ import com.nanobuo.mypodder.ui.components.LocalPlaybackHighlight
 import com.nanobuo.mypodder.ui.components.PlaybackHighlight
 import com.nanobuo.mypodder.ui.downloads.DownloadsScreen
 import com.nanobuo.mypodder.ui.episode.EpisodeScreen
+import com.nanobuo.mypodder.ui.history.HistoryScreen
 import com.nanobuo.mypodder.ui.library.LibraryScreen
 import com.nanobuo.mypodder.ui.player.MiniPlayer
 import com.nanobuo.mypodder.ui.player.PlayerScreen
@@ -188,6 +189,13 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                         onEpisode = { nav.navigate(EpisodeRoute(it)) },
                         onSearch = { nav.navigate(SearchRoute) },
                         onSettings = { nav.navigate(SettingsRoute) },
+                        onHistory = { nav.navigate(HistoryRoute) },
+                    )
+                }
+                composable<HistoryRoute> {
+                    HistoryScreen(
+                        onBack = { nav.popBackStack() },
+                        onEpisode = { nav.navigate(EpisodeRoute(it)) },
                     )
                 }
                 composable<QueueRoute> {

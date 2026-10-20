@@ -61,6 +61,12 @@ interface EpisodeDao {
     @Query("$EPISODE_ITEM WHERE e.downloadState != 0 ORDER BY e.downloadState = 3, e.pubDate DESC")
     fun observeDownloads(): Flow<List<EpisodeItem>>
 
+    @Query("$EPISODE_ITEM WHERE e.lastPlayedAt > 0 ORDER BY e.lastPlayedAt DESC LIMIT :limit")
+    fun observeHistory(limit: Int): Flow<List<EpisodeItem>>
+
+    @Query("UPDATE episodes SET lastPlayedAt = 0")
+    suspend fun clearHistory()
+
     @Query("$EPISODE_ITEM WHERE e.id = :id")
     fun observeItem(id: Long): Flow<EpisodeItem?>
 

@@ -2,6 +2,8 @@ package com.nanobuo.mypodder.ui.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
@@ -78,6 +80,31 @@ fun StatsScreen(onPodcast: (Long) -> Unit, viewModel: StatsViewModel = hiltViewM
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var confirmReset by remember { mutableStateOf(false) }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            icon = { Icon(Icons.Rounded.RestartAlt, null) },
+            title = { Text(stringResource(R.string.stats_reset)) },
+            text = { Text(stringResource(R.string.stats_reset_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmReset = false
+                    viewModel.reset()
+                    scope.launch {
+                        val result = snackbar.showSnackbar(
+                            context.getString(R.string.stats_reset_done),
+                            actionLabel = context.getString(R.string.undo),
+                            duration = SnackbarDuration.Long,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) viewModel.undoReset()
+                    }
+                }) { Text(stringResource(R.string.stats_reset_action)) }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -87,18 +114,7 @@ fun StatsScreen(onPodcast: (Long) -> Unit, viewModel: StatsViewModel = hiltViewM
                 title = { Text(stringResource(R.string.nav_stats)) },
                 actions = {
                     if ((ui?.totalMs ?: 0) > 0 || (ui?.completed ?: 0) > 0) {
-                        IconButton(onClick = {
-                            viewModel.reset()
-                            scope.launch {
-                                snackbar.currentSnackbarData?.dismiss()
-                                val result = snackbar.showSnackbar(
-                                    context.getString(R.string.stats_reset_done),
-                                    actionLabel = context.getString(R.string.undo),
-                                    duration = SnackbarDuration.Long,
-                                )
-                                if (result == SnackbarResult.ActionPerformed) viewModel.undoReset()
-                            }
-                        }) {
+                        IconButton(onClick = { confirmReset = true }) {
                             Icon(Icons.Rounded.RestartAlt, stringResource(R.string.stats_reset))
                         }
                     }

@@ -177,4 +177,12 @@
     <string name="stats_reset">Reset statistics</string>
     <string name="stats_reset_done">Statistics reset</string>
     <string name="undo">Undo</string>
+    <string name="history">Listening history</string>
+    <string name="history_empty">Episodes you listen to will show up here.</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_clear_confirm">Remove all episodes from the listening history? Statistics are not affected.</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="stats_reset_confirm">All listening statistics will be deleted: total time, chart, streaks, completed episodes and time saved.</string>
+    <string name="stats_reset_action">Reset</string>
 </resources>

@@ -1,6 +1,12 @@
 package com.nanobuo.mypodder.ui.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material.icons.rounded.History
 import com.nanobuo.mypodder.ui.components.Wordmark
 import com.nanobuo.mypodder.data.settings.NewBadgeStyle
 import androidx.compose.ui.semantics.semantics
@@ -91,6 +97,7 @@ fun LibraryScreen(
     onEpisode: (Long) -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
+    onHistory: () -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val podcasts by viewModel.podcasts.collectAsStateWithLifecycle()
@@ -126,12 +133,8 @@ fun LibraryScreen(
                 title = { Wordmark() },
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    if (refreshing) {
-                        LoadingIndicator(Modifier.size(40.dp))
-                    } else {
-                        IconButton(onClick = viewModel::refresh) {
-                            Icon(Icons.Rounded.Refresh, stringResource(R.string.refresh))
-                        }
+                    IconButton(onClick = onHistory) {
+                        Icon(Icons.Rounded.History, stringResource(R.string.history))
                     }
                     if (tab == 0 && podcasts?.isNotEmpty() == true) {
                         IconButton(onClick = viewModel::toggleLayout) {
@@ -193,10 +196,26 @@ fun LibraryScreen(
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.tab_podcasts)) })
                         Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.tab_episodes)) })
                     }
-                    when {
-                        tab == 1 -> LatestEpisodes(latest, onEpisode)
-                        grid -> PodcastGrid(list, badgeStyle, onPodcast)
-                        else -> PodcastList(list, badgeStyle, onPodcast)
+                    // Trascinando la lista verso il basso si aggiornano tutti i feed.
+                    val pullState = rememberPullToRefreshState()
+                    PullToRefreshBox(
+                        isRefreshing = refreshing,
+                        onRefresh = viewModel::refresh,
+                        state = pullState,
+                        modifier = Modifier.fillMaxSize(),
+                        indicator = {
+                            PullToRefreshDefaults.LoadingIndicator(
+                                state = pullState,
+                                isRefreshing = refreshing,
+                                modifier = Modifier.align(Alignment.TopCenter),
+                            )
+                        },
+                    ) {
+                        when {
+                            tab == 1 -> LatestEpisodes(latest, onEpisode)
+                            grid -> PodcastGrid(list, badgeStyle, onPodcast)
+                            else -> PodcastList(list, badgeStyle, onPodcast)
+                        }
                     }
                 }
             }
@@ -275,7 +294,9 @@ private fun PodcastList(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyl
 @Composable
 private fun LatestEpisodes(items: List<com.nanobuo.mypodder.data.db.EpisodeItem>, onEpisode: (Long) -> Unit) {
     if (items.isEmpty()) {
-        EmptyState(Icons.Rounded.NewReleases, stringResource(R.string.no_episodes))
+        Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            EmptyState(Icons.Rounded.NewReleases, stringResource(R.string.no_episodes))
+        }
         return
     }
     LazyColumn(Modifier.fillMaxSize()) {

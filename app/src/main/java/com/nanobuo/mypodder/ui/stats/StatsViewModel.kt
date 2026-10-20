@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.db.DayTotal
+import kotlinx.coroutines.launch
+import com.nanobuo.mypodder.data.db.ListeningEntry
 import com.nanobuo.mypodder.data.db.PodcastTotal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +47,23 @@ class StatsViewModel @Inject constructor(db: AppDatabase) : ViewModel() {
 
     private val _period = MutableStateFlow(StatsPeriod.DAY)
     val period = _period.asStateFlow()
+
+    private var backup: List<ListeningEntry> = emptyList()
+
+    /** Azzera subito le statistiche, tenendo una copia per poter annullare. */
+    fun reset() {
+        viewModelScope.launch {
+            val current = dao.getAll()
+            if (current.isNotEmpty()) backup = current
+            dao.clearAll()
+        }
+    }
+
+    fun undoReset() {
+        val entries = backup
+        backup = emptyList()
+        if (entries.isNotEmpty()) viewModelScope.launch { dao.insertAll(entries) }
+    }
 
     fun setPeriod(p: StatsPeriod) {
         _period.value = p

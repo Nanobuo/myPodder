@@ -174,4 +174,7 @@
     <string name="manage_queue">Manage</string>
     <string name="cover_colors">Colors from podcast artwork</string>
     <string name="cover_colors_summary">The accent color follows the artwork of the podcast you are listening to or viewing</string>
+    <string name="stats_reset">Reset statistics</string>
+    <string name="stats_reset_done">Statistics reset</string>
+    <string name="undo">Undo</string>
 </resources>

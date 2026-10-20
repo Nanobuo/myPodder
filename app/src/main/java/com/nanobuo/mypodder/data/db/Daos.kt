@@ -213,6 +213,15 @@ interface ListeningDao {
         }
     }
 
+    @Query("SELECT * FROM listening")
+    suspend fun getAll(): List<ListeningEntry>
+
+    @Query("DELETE FROM listening")
+    suspend fun clearAll()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entries: List<ListeningEntry>)
+
     @Query("UPDATE listening SET completed = 1 WHERE day = :day AND episodeId = :episodeId")
     suspend fun markCompletedRow(day: Long, episodeId: Long): Int
 

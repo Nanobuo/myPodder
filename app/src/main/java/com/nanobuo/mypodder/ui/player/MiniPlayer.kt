@@ -2,6 +2,7 @@ package com.nanobuo.mypodder.ui.player
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,7 +63,8 @@ fun MiniPlayer(state: NowPlaying, connection: PlayerConnection, onOpen: () -> Un
                         state.title,
                         style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        // I titoli lunghi scorrono invece di essere troncati.
+                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE, initialDelayMillis = 1_500),
                     )
                     Text(
                         state.podcastTitle,

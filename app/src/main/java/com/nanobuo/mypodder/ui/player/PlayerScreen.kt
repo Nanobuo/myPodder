@@ -1,6 +1,7 @@
 package com.nanobuo.mypodder.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -181,13 +182,19 @@ fun PlayerScreen(
             }
         }
 
+        // Tocco sul titolo: mostra il titolo completo, un altro tocco lo richiude.
+        var titleExpanded by rememberSaveable(state.episodeId) { mutableStateOf(false) }
         Text(
             state.title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
+            maxLines = if (titleExpanded) Int.MAX_VALUE else 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
+            modifier = Modifier
+                .animateContentSize()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { titleExpanded = !titleExpanded },
         )
         Text(
             state.podcastTitle,

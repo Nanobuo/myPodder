@@ -125,7 +125,7 @@ fun EpisodeScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { onPodcast(ep.podcastId) },
                         )
-                        Text(ep.title, style = MaterialTheme.typography.titleLarge, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                        Text(ep.title, style = MaterialTheme.typography.titleLarge)
                         Text(
                             listOf(formatDate(ep.pubDate), if (ep.durationMs > 0) formatDuration(ep.durationMs) else "")
                                 .filter { it.isNotEmpty() }.joinToString(" · "),

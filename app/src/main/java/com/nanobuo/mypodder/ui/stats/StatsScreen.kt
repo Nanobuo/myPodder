@@ -2,6 +2,15 @@ package com.nanobuo.mypodder.ui.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,10 +75,36 @@ import com.nanobuo.mypodder.util.formatDuration
 fun StatsScreen(onPodcast: (Long) -> Unit, viewModel: StatsViewModel = hiltViewModel()) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val period by viewModel.period.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_stats)) }) },
+        snackbarHost = { SnackbarHost(snackbar) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.nav_stats)) },
+                actions = {
+                    if ((ui?.totalMs ?: 0) > 0 || (ui?.completed ?: 0) > 0) {
+                        IconButton(onClick = {
+                            viewModel.reset()
+                            scope.launch {
+                                snackbar.currentSnackbarData?.dismiss()
+                                val result = snackbar.showSnackbar(
+                                    context.getString(R.string.stats_reset_done),
+                                    actionLabel = context.getString(R.string.undo),
+                                    duration = SnackbarDuration.Long,
+                                )
+                                if (result == SnackbarResult.ActionPerformed) viewModel.undoReset()
+                            }
+                        }) {
+                            Icon(Icons.Rounded.RestartAlt, stringResource(R.string.stats_reset))
+                        }
+                    }
+                },
+            )
+        },
     ) { padding ->
         val s = ui
         if (s == null) {

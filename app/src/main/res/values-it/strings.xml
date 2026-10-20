@@ -171,4 +171,7 @@
     <string name="manage_queue">Gestisci</string>
     <string name="cover_colors">Colori dalla copertina</string>
     <string name="cover_colors_summary">Il colore d\'accento segue la copertina del podcast che ascolti o stai guardando</string>
+    <string name="stats_reset">Azzera statistiche</string>
+    <string name="stats_reset_done">Statistiche azzerate</string>
+    <string name="undo">Annulla</string>
 </resources>

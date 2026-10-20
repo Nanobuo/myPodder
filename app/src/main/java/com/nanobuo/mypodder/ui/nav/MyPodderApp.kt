@@ -17,8 +17,10 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Podcasts
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarArrangement
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,6 +67,7 @@ private val topLevels = listOf(
     TopLevel(StatsRoute, StatsRoute::class, Icons.Rounded.BarChart, R.string.nav_stats),
 )
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
     val nav = rememberNavController()
@@ -103,10 +106,10 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut(),
                     ) {
-                        NavigationBar {
+                        ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
                             topLevels.forEach { t ->
                                 val selected = destination?.hierarchy?.any { it.hasRoute(t.routeClass) } == true
-                                NavigationBarItem(
+                                ShortNavigationBarItem(
                                     selected = selected,
                                     onClick = {
                                         nav.navigate(t.route) {

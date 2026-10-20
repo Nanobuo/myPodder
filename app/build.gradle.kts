@@ -31,8 +31,20 @@ android {
         buildConfigField("String", "PODCASTINDEX_SECRET", "\"${secret("PODCASTINDEX_SECRET")}\"")
     }
 
+    // Chiave di debug fissa (pubblica, come ogni chiave di debug): ogni build di CI ha la stessa
+    // firma, così l'APK si aggiorna sopra la versione già installata invece di andare in conflitto.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
         }
         release {

@@ -1,5 +1,22 @@
 package com.nanobuo.mypodder.ui.episode
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.font.FontWeight
+import com.nanobuo.mypodder.data.db.Chapter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -132,31 +149,15 @@ fun EpisodeScreen(
             }
 
             if (chapters.isNotEmpty()) {
-                Text(stringResource(R.string.chapters), style = MaterialTheme.typography.titleMedium)
-                Column(Modifier.clip(RoundedCornerShape(20.dp))) {
-                    chapters.forEachIndexed { index, chapter ->
-                        ListItem(
-                            headlineContent = { Text(chapter.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                            leadingContent = {
-                                Text(
-                                    formatClock(chapter.startMs),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            },
-                            trailingContent = if (chapter.imageUrl != null) {
-                                { Artwork(chapter.imageUrl, size = 40.dp, corner = 8.dp) }
-                            } else {
-                                null
-                            },
-                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                            modifier = Modifier.clickable { actions.play(ep.id, chapter.startMs) },
-                        )
-                        if (index < chapters.lastIndex) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
-                        }
-                    }
-                }
+                val livePosition by viewModel.livePosition.collectAsStateWithLifecycle(initialValue = 0L)
+                val position = if (isCurrent) livePosition else ep.positionMs
+                val started = isCurrent || (ep.positionMs > 0 && !ep.completed)
+                val currentIndex = if (started) chapters.indexOfLast { it.startMs <= position } else -1
+                ChaptersSection(
+                    chapters = chapters,
+                    currentIndex = currentIndex,
+                    onSelect = { actions.play(ep.id, it.startMs) },
+                )
             }
 
             ep.description?.takeIf { it.isNotBlank() }?.let { html ->
@@ -164,6 +165,113 @@ fun EpisodeScreen(
                 HtmlDescription(html, onSeek = { ms -> actions.play(ep.id, ms) })
             }
             Spacer(Modifier.size(24.dp))
+        }
+    }
+}
+
+/** Capitoli: chiusi di default, con il capitolo in corso sempre in evidenza se l'episodio è avviato. */
+@Composable
+private fun ChaptersSection(chapters: List<Chapter>, currentIndex: Int, onSelect: (Chapter) -> Unit) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(if (open) 180f else 0f, label = "arrow")
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { open = !open }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.chapters) + " · " + chapters.size,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.Rounded.KeyboardArrowDown,
+                stringResource(if (open) R.string.collapse else R.string.expand),
+                Modifier.rotate(arrowRotation),
+            )
+        }
+
+        chapters.getOrNull(currentIndex)?.let { current ->
+            Card(
+                onClick = { onSelect(current) },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (current.imageUrl != null) {
+                        Artwork(current.imageUrl, size = 56.dp, corner = 12.dp)
+                        Spacer(Modifier.width(12.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.current_chapter, currentIndex + 1, chapters.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                        Text(
+                            current.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            formatClock(current.startMs),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(visible = open, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+            Column(Modifier.clip(RoundedCornerShape(20.dp))) {
+                chapters.forEachIndexed { index, chapter ->
+                    val isCurrent = index == currentIndex
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                chapter.title,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        },
+                        leadingContent = {
+                            Text(
+                                formatClock(chapter.startMs),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        trailingContent = when {
+                            isCurrent -> {
+                                { Icon(Icons.Rounded.GraphicEq, null, tint = MaterialTheme.colorScheme.primary) }
+                            }
+                            chapter.imageUrl != null -> {
+                                { Artwork(chapter.imageUrl, size = 40.dp, corner = 8.dp) }
+                            }
+                            else -> null
+                        },
+                        colors = ListItemDefaults.colors(
+                            containerColor = if (isCurrent) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainer,
+                        ),
+                        modifier = Modifier.clickable { onSelect(chapter) },
+                    )
+                    if (index < chapters.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+                    }
+                }
+            }
         }
     }
 }

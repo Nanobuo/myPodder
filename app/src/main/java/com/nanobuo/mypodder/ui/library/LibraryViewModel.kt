@@ -8,11 +8,13 @@ import com.nanobuo.mypodder.data.db.Podcast
 import com.nanobuo.mypodder.data.opml.OpmlManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.repo.PodcastRepository
+import com.nanobuo.mypodder.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,7 +24,15 @@ class LibraryViewModel @Inject constructor(
     private val podcastRepository: PodcastRepository,
     episodeRepository: EpisodeRepository,
     private val opml: OpmlManager,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
+    val grid: StateFlow<Boolean> = settings.flow.map { it.libraryGrid }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.libraryGrid)
+
+    fun toggleLayout() {
+        viewModelScope.launch { settings.setLibraryGrid(!grid.value) }
+    }
+
     val podcasts: StateFlow<List<Podcast>?> = podcastRepository.podcasts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

@@ -76,6 +76,10 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch { episodes.nextInQueue()?.let { connection.play(it) } }
     }
 
+    fun toggleTimeDisplay() {
+        viewModelScope.launch { settingsRepository.setShowRemaining(!settings.value.showRemaining) }
+    }
+
     fun playFromQueue(id: Long) = connection.play(id)
 
     fun removeFromQueue(id: Long) {

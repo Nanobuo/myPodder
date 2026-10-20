@@ -17,7 +17,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.NewReleases
@@ -34,6 +36,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -86,6 +89,7 @@ fun LibraryScreen(
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val refreshResult by viewModel.refreshResult.collectAsStateWithLifecycle()
     val opmlStatus by viewModel.opmlStatus.collectAsStateWithLifecycle()
+    val grid by viewModel.grid.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -117,6 +121,15 @@ fun LibraryScreen(
                     } else {
                         IconButton(onClick = viewModel::refresh) {
                             Icon(Icons.Rounded.Refresh, stringResource(R.string.refresh))
+                        }
+                    }
+                    if (tab == 0 && podcasts?.isNotEmpty() == true) {
+                        IconButton(onClick = viewModel::toggleLayout) {
+                            if (grid) {
+                                Icon(Icons.AutoMirrored.Rounded.ViewList, stringResource(R.string.show_as_list))
+                            } else {
+                                Icon(Icons.Rounded.GridView, stringResource(R.string.show_as_grid))
+                            }
                         }
                     }
                     IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, stringResource(R.string.settings)) }
@@ -170,7 +183,11 @@ fun LibraryScreen(
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.tab_podcasts)) })
                         Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.tab_episodes)) })
                     }
-                    if (tab == 0) PodcastGrid(list, onPodcast) else LatestEpisodes(latest, onEpisode)
+                    when {
+                        tab == 1 -> LatestEpisodes(latest, onEpisode)
+                        grid -> PodcastGrid(list, onPodcast)
+                        else -> PodcastList(list, onPodcast)
+                    }
                 }
             }
         }
@@ -180,7 +197,7 @@ fun LibraryScreen(
 @Composable
 private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(112.dp),
+        columns = GridCells.Fixed(3),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -207,6 +224,24 @@ private fun PodcastGrid(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
                     modifier = Modifier.padding(top = 6.dp, start = 2.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PodcastList(podcasts: List<Podcast>, onPodcast: (Long) -> Unit) {
+    LazyColumn(Modifier.fillMaxSize()) {
+        items(podcasts, key = { it.id }) { podcast ->
+            ListItem(
+                headlineContent = { Text(podcast.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                supportingContent = if (podcast.author != null) {
+                    { Text(podcast.author, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                } else {
+                    null
+                },
+                leadingContent = { Artwork(podcast.imageUrl, size = 56.dp) },
+                modifier = Modifier.clickable { onPodcast(podcast.id) },
+            )
         }
     }
 }

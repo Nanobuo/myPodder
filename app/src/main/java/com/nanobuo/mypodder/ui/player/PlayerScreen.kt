@@ -232,7 +232,15 @@ fun PlayerScreen(
         Row(Modifier.fillMaxWidth()) {
             Text(formatClock(shown), style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.weight(1f))
-            Text("-" + formatClock(duration - shown), style = MaterialTheme.typography.labelMedium)
+            // Tocco: alterna tempo rimanente e durata totale.
+            Text(
+                if (settings.showRemaining) "-" + formatClock(duration - shown) else formatClock(duration),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = viewModel::toggleTimeDisplay)
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
         }
 
         Spacer(Modifier.height(8.dp))

@@ -36,6 +36,8 @@ data class AppSettings(
     val addNewToQueue: Boolean = true,
     val shakeToExtend: Boolean = true,
     val sleepMinutes: Int = 30,
+    val libraryGrid: Boolean = true,
+    val showRemaining: Boolean = true,
 )
 
 @Singleton
@@ -57,6 +59,8 @@ class SettingsRepository @Inject constructor(
         val shakeToExtend = booleanPreferencesKey("shake_to_extend")
         val sleepMinutes = intPreferencesKey("sleep_minutes")
         val lastEpisode = longPreferencesKey("last_episode")
+        val libraryGrid = booleanPreferencesKey("library_grid")
+        val showRemaining = booleanPreferencesKey("show_remaining")
     }
 
     private val defaults = AppSettings()
@@ -75,6 +79,8 @@ class SettingsRepository @Inject constructor(
             addNewToQueue = p[Keys.addNewToQueue] ?: defaults.addNewToQueue,
             shakeToExtend = p[Keys.shakeToExtend] ?: defaults.shakeToExtend,
             sleepMinutes = p[Keys.sleepMinutes] ?: defaults.sleepMinutes,
+            libraryGrid = p[Keys.libraryGrid] ?: defaults.libraryGrid,
+            showRemaining = p[Keys.showRemaining] ?: defaults.showRemaining,
         )
     }
 
@@ -102,4 +108,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setShakeToExtend(v: Boolean) = set(Keys.shakeToExtend, v)
     suspend fun setSleepMinutes(v: Int) = set(Keys.sleepMinutes, v)
     suspend fun setLastEpisode(id: Long) = set(Keys.lastEpisode, id)
+    suspend fun setLibraryGrid(v: Boolean) = set(Keys.libraryGrid, v)
+    suspend fun setShowRemaining(v: Boolean) = set(Keys.showRemaining, v)
 }

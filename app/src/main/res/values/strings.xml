@@ -107,6 +107,11 @@
     <string name="skip_forward_seconds">Forward %d seconds</string>
     <string name="next_in_queue">Next in queue</string>
     <string name="up_next">Up next</string>
+    <string name="current_chapter">Current chapter · %1$d of %2$d</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+    <string name="show_as_grid">Show as grid</string>
+    <string name="show_as_list">Show as list</string>
     <string name="playback_speed">Playback speed</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="sleep_timer_short">Timer</string>

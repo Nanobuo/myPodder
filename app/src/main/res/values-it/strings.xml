@@ -104,6 +104,11 @@
     <string name="skip_forward_seconds">Avanti di %d secondi</string>
     <string name="next_in_queue">Prossimo in coda</string>
     <string name="up_next">Prossimi in coda</string>
+    <string name="current_chapter">Capitolo attuale · %1$d di %2$d</string>
+    <string name="expand">Espandi</string>
+    <string name="collapse">Comprimi</string>
+    <string name="show_as_grid">Mostra come griglia</string>
+    <string name="show_as_list">Mostra come elenco</string>
     <string name="playback_speed">Velocità di riproduzione</string>
     <string name="sleep_timer">Timer di spegnimento</string>
     <string name="sleep_timer_short">Timer</string>

@@ -8,6 +8,7 @@ import com.nanobuo.mypodder.data.chapters.ChapterRepository
 import com.nanobuo.mypodder.data.db.Chapter
 import com.nanobuo.mypodder.data.db.EpisodeItem
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
+import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.ui.nav.EpisodeRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +22,11 @@ class EpisodeViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     episodes: EpisodeRepository,
     chapterRepository: ChapterRepository,
+    connection: PlayerConnection,
 ) : ViewModel() {
+    /** Posizione del player, usata quando questo episodio è quello in riproduzione. */
+    val livePosition = connection.positionFlow(1_000)
+
     val id = savedStateHandle.toRoute<EpisodeRoute>().id
 
     val episode: StateFlow<EpisodeItem?> = episodes.observe(id)

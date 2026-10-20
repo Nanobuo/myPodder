@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigazione -->
+    <string name="nav_library">Libreria</string>
+    <string name="nav_queue">Coda</string>
+    <string name="nav_search">Cerca</string>
+    <string name="nav_downloads">Download</string>
+    <string name="nav_stats">Statistiche</string>
+    <string name="settings">Impostazioni</string>
+    <string name="back">Indietro</string>
+    <string name="close">Chiudi</string>
+    <string name="more_options">Altre opzioni</string>
+    <string name="cancel">Annulla</string>
+    <string name="clear">Svuota</string>
+    <string name="retry">Riprova</string>
+    <string name="refresh">Aggiorna</string>
+
+    <!-- Libreria -->
+    <string name="tab_podcasts">Podcast</string>
+    <string name="tab_episodes">Ultimi episodi</string>
+    <string name="library_empty">Non segui ancora nessun podcast. Cercane uno o importa le iscrizioni da un\'altra app.</string>
+    <string name="find_podcasts">Cerca podcast</string>
+    <string name="no_episodes">Ancora nessun episodio</string>
+    <string name="no_new_episodes">Nessun nuovo episodio</string>
+    <plurals name="new_episodes">
+        <item quantity="one">%d nuovo episodio</item>
+        <item quantity="other">%d nuovi episodi</item>
+    </plurals>
+    <plurals name="episodes_count">
+        <item quantity="one">%d episodio</item>
+        <item quantity="other">%d episodi</item>
+    </plurals>
+    <string name="refresh_error">Impossibile aggiornare il feed. Controlla la connessione.</string>
+
+    <!-- OPML -->
+    <string name="import_opml">Importa OPML</string>
+    <string name="import_opml_summary">Porta qui le iscrizioni da un\'altra app di podcast</string>
+    <string name="export_opml">Esporta OPML</string>
+    <string name="opml_importing">Importazione in corso… %1$d/%2$d</string>
+    <string name="opml_imported">%d podcast importati.</string>
+    <string name="opml_failed">%d non sono stati caricati.</string>
+    <string name="opml_exported">%d podcast esportati.</string>
+    <string name="opml_error">Impossibile leggere o scrivere il file OPML.</string>
+
+    <!-- Podcast -->
+    <string name="subscribe">Iscriviti</string>
+    <string name="subscribed_open">Iscritto · apri</string>
+    <string name="unsubscribe">Annulla iscrizione</string>
+    <string name="unsubscribe_confirm">Annullare l\'iscrizione a “%s”? Gli episodi scaricati verranno eliminati.</string>
+    <string name="auto_download">Download automatico</string>
+    <string name="auto_download_summary">Scarica i nuovi episodi appena vengono pubblicati</string>
+    <string name="preview">Anteprima</string>
+    <string name="feed_error">Impossibile caricare questo feed.</string>
+
+    <!-- Episodi -->
+    <string name="play">Riproduci</string>
+    <string name="pause">Pausa</string>
+    <string name="resume_from">Riprendi da %s</string>
+    <string name="played">Ascoltato</string>
+    <string name="remaining">mancano %s</string>
+    <string name="download">Scarica</string>
+    <string name="downloading">Download dell\'episodio</string>
+    <string name="download_failed">Download non riuscito, tocca per riprovare</string>
+    <string name="delete_download">Elimina download</string>
+    <string name="play_next">Riproduci dopo</string>
+    <string name="add_to_queue">Aggiungi alla coda</string>
+    <string name="remove_from_queue">Rimuovi dalla coda</string>
+    <string name="mark_played">Segna come ascoltato</string>
+    <string name="mark_unplayed">Segna come non ascoltato</string>
+    <string name="chapters">Capitoli</string>
+    <string name="description">Descrizione</string>
+    <string name="episode_details">Dettagli episodio</string>
+
+    <!-- Coda -->
+    <string name="queue_empty">La coda è vuota. Qui compariranno i nuovi episodi e quelli che aggiungi con “Riproduci dopo”.</string>
+    <string name="clear_queue">Svuota coda</string>
+    <string name="clear_queue_confirm">Rimuovere tutti gli episodi dalla coda?</string>
+    <string name="reorder">Trascina per riordinare</string>
+
+    <!-- Ricerca -->
+    <string name="search_hint">Cerca podcast o incolla l\'URL di un feed</string>
+    <string name="search_intro">Cerca per titolo, autore o argomento.</string>
+    <string name="search_no_results">Nessun podcast trovato</string>
+    <string name="search_error">La ricerca non è disponibile al momento. Controlla la connessione.</string>
+    <string name="trending">Di tendenza</string>
+    <string name="open_feed">Apri questo feed</string>
+
+    <!-- Download -->
+    <string name="downloads_empty">Nessun episodio scaricato. Gli episodi scaricati si possono ascoltare offline.</string>
+    <string name="storage_used">%s occupati dai download</string>
+    <string name="storage_free">%s liberi sul dispositivo</string>
+    <string name="delete_played">Elimina episodi ascoltati</string>
+    <plurals name="deleted_downloads">
+        <item quantity="one">%d download eliminato</item>
+        <item quantity="other">%d download eliminati</item>
+    </plurals>
+    <string name="channel_downloads">Download</string>
+
+    <!-- Player -->
+    <string name="now_playing">In riproduzione</string>
+    <string name="skip_back">Indietro</string>
+    <string name="skip_forward">Avanti</string>
+    <string name="skip_back_seconds">Indietro di %d secondi</string>
+    <string name="skip_forward_seconds">Avanti di %d secondi</string>
+    <string name="next_in_queue">Prossimo in coda</string>
+    <string name="playback_speed">Velocità di riproduzione</string>
+    <string name="sleep_timer">Timer di spegnimento</string>
+    <string name="sleep_timer_short">Timer</string>
+    <string name="sleep_end_short">Fine</string>
+    <string name="sleep_remaining">Si ferma tra %s</string>
+    <string name="sleep_shake_hint">Scuoti il telefono per prolungare il timer.</string>
+    <string name="sleep_extend">Prolunga</string>
+    <string name="sleep_cancel">Disattiva timer</string>
+    <string name="sleep_end_active">La riproduzione si fermerà alla fine di questo episodio.</string>
+    <string name="sleep_end_of_episode">Fine episodio</string>
+    <string name="minutes_short">%d min</string>
+
+    <!-- Statistiche -->
+    <string name="stats_total">Tempo totale di ascolto</string>
+    <plurals name="days_count">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+    </plurals>
+    <string name="stats_streak_best">Serie attuale · record %d</string>
+    <string name="stats_completed">Episodi completati</string>
+    <string name="stats_saved">Tempo risparmiato con la velocità</string>
+    <string name="period_day">Giorni</string>
+    <string name="period_week">Settimane</string>
+    <string name="period_month">Mesi</string>
+    <string name="stats_period_total">Ascoltato in questo periodo</string>
+    <string name="stats_top_podcasts">Podcast più ascoltati</string>
+    <string name="stats_no_data">Ancora nessun ascolto in questo periodo.</string>
+
+    <!-- Impostazioni -->
+    <string name="settings_appearance">Aspetto</string>
+    <string name="theme">Tema</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="dynamic_color">Colori dinamici</string>
+    <string name="dynamic_color_summary">Usa i colori dello sfondo (Material You)</string>
+    <string name="settings_playback">Riproduzione</string>
+    <string name="skip_back_interval">Salto indietro</string>
+    <string name="skip_forward_interval">Salto in avanti</string>
+    <string name="shake_to_extend">Scuoti per prolungare il timer</string>
+    <string name="shake_to_extend_summary">Scuotendo il telefono si aggiunge tempo al timer attivo</string>
+    <string name="settings_downloads">Download</string>
+    <string name="wifi_only">Scarica solo con Wi-Fi</string>
+    <string name="wifi_only_summary">I download attendono la connessione Wi-Fi</string>
+    <string name="delete_after_played">Elimina dopo l\'ascolto</string>
+    <string name="delete_after_played_summary">Rimuove il file scaricato quando un episodio è finito</string>
+    <string name="auto_download_count">Nuovi episodi da scaricare automaticamente a ogni aggiornamento</string>
+    <string name="settings_feeds">Feed</string>
+    <string name="refresh_interval">Aggiornamento automatico</string>
+    <string name="refresh_manual">Manuale</string>
+    <string name="hours_short">%d h</string>
+    <string name="add_new_to_queue">Aggiungi i nuovi episodi alla coda</string>
+    <string name="add_new_to_queue_summary">Gli episodi appena pubblicati vengono messi in coda</string>
+    <string name="settings_about">Informazioni</string>
+    <string name="about_summary">App di podcast open source · licenza MIT · ricerca tramite Podcast Index</string>
+</resources>

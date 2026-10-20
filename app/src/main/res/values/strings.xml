@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">myPodder</string>
+
+    <!-- Navigation -->
+    <string name="nav_library">Library</string>
+    <string name="nav_queue">Queue</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="nav_stats">Stats</string>
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="more_options">More options</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
+    <string name="retry">Retry</string>
+    <string name="refresh">Refresh</string>
+
+    <!-- Library -->
+    <string name="tab_podcasts">Podcasts</string>
+    <string name="tab_episodes">Latest episodes</string>
+    <string name="library_empty">You haven\'t subscribed to any podcast yet. Search for one or import your subscriptions from another app.</string>
+    <string name="find_podcasts">Find podcasts</string>
+    <string name="no_episodes">No episodes yet</string>
+    <string name="no_new_episodes">No new episodes</string>
+    <plurals name="new_episodes">
+        <item quantity="one">%d new episode</item>
+        <item quantity="other">%d new episodes</item>
+    </plurals>
+    <plurals name="episodes_count">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
+    <string name="refresh_error">Could not refresh the feed. Check your connection.</string>
+
+    <!-- OPML -->
+    <string name="import_opml">Import OPML</string>
+    <string name="import_opml_summary">Bring your subscriptions from another podcast app</string>
+    <string name="export_opml">Export OPML</string>
+    <string name="opml_importing">Importing podcasts… %1$d/%2$d</string>
+    <string name="opml_imported">%d podcasts imported.</string>
+    <string name="opml_failed">%d could not be loaded.</string>
+    <string name="opml_exported">%d podcasts exported.</string>
+    <string name="opml_error">The OPML file could not be read or written.</string>
+
+    <!-- Podcast -->
+    <string name="subscribe">Subscribe</string>
+    <string name="subscribed_open">Subscribed · open</string>
+    <string name="unsubscribe">Unsubscribe</string>
+    <string name="unsubscribe_confirm">Unsubscribe from “%s”? Its downloaded episodes will be deleted.</string>
+    <string name="auto_download">Automatic download</string>
+    <string name="auto_download_summary">Download new episodes as soon as they are published</string>
+    <string name="preview">Preview</string>
+    <string name="feed_error">This feed could not be loaded.</string>
+
+    <!-- Episodes -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="resume_from">Resume from %s</string>
+    <string name="played">Played</string>
+    <string name="remaining">%s left</string>
+    <string name="download">Download</string>
+    <string name="downloading">Downloading episode</string>
+    <string name="download_failed">Download failed, tap to retry</string>
+    <string name="delete_download">Delete download</string>
+    <string name="play_next">Play next</string>
+    <string name="add_to_queue">Add to queue</string>
+    <string name="remove_from_queue">Remove from queue</string>
+    <string name="mark_played">Mark as played</string>
+    <string name="mark_unplayed">Mark as unplayed</string>
+    <string name="chapters">Chapters</string>
+    <string name="description">Description</string>
+    <string name="episode_details">Episode details</string>
+
+    <!-- Queue -->
+    <string name="queue_empty">Your queue is empty. New episodes and the ones you add with “Play next” will show up here.</string>
+    <string name="clear_queue">Clear queue</string>
+    <string name="clear_queue_confirm">Remove all episodes from the queue?</string>
+    <string name="reorder">Drag to reorder</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search podcasts or paste a feed URL</string>
+    <string name="search_intro">Search by title, author or topic.</string>
+    <string name="search_no_results">No podcasts found</string>
+    <string name="search_error">Search is not available right now. Check your connection.</string>
+    <string name="trending">Trending</string>
+    <string name="open_feed">Open this feed</string>
+    <string name="powered_by_podcastindex" translatable="false">Powered by Podcast Index · podcastindex.org</string>
+
+    <!-- Downloads -->
+    <string name="downloads_empty">No downloaded episodes. Downloaded episodes can be played offline.</string>
+    <string name="storage_used">%s used by downloads</string>
+    <string name="storage_free">%s free on the device</string>
+    <string name="delete_played">Delete played episodes</string>
+    <plurals name="deleted_downloads">
+        <item quantity="one">%d download deleted</item>
+        <item quantity="other">%d downloads deleted</item>
+    </plurals>
+    <string name="channel_downloads">Downloads</string>
+
+    <!-- Player -->
+    <string name="now_playing">Now playing</string>
+    <string name="skip_back">Skip back</string>
+    <string name="skip_forward">Skip forward</string>
+    <string name="skip_back_seconds">Back %d seconds</string>
+    <string name="skip_forward_seconds">Forward %d seconds</string>
+    <string name="next_in_queue">Next in queue</string>
+    <string name="playback_speed">Playback speed</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_short">Timer</string>
+    <string name="sleep_end_short">End</string>
+    <string name="sleep_remaining">Stops in %s</string>
+    <string name="sleep_shake_hint">Shake the phone to extend the timer.</string>
+    <string name="sleep_extend">Extend</string>
+    <string name="sleep_cancel">Turn off timer</string>
+    <string name="sleep_end_active">Playback will stop at the end of this episode.</string>
+    <string name="sleep_end_of_episode">End of episode</string>
+    <string name="minutes_short">%d min</string>
+
+    <!-- Stats -->
+    <string name="stats_total">Total listening time</string>
+    <plurals name="days_count">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="stats_streak_best">Current streak · best %d</string>
+    <string name="stats_completed">Episodes completed</string>
+    <string name="stats_saved">Time saved with faster playback</string>
+    <string name="period_day">Days</string>
+    <string name="period_week">Weeks</string>
+    <string name="period_month">Months</string>
+    <string name="stats_period_total">Listened in this period</string>
+    <string name="stats_top_podcasts">Most listened podcasts</string>
+    <string name="stats_no_data">Nothing listened in this period yet.</string>
+
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="dynamic_color">Dynamic colors</string>
+    <string name="dynamic_color_summary">Use colors from your wallpaper (Material You)</string>
+    <string name="settings_playback">Playback</string>
+    <string name="skip_back_interval">Skip back</string>
+    <string name="skip_forward_interval">Skip forward</string>
+    <string name="shake_to_extend">Shake to extend sleep timer</string>
+    <string name="shake_to_extend_summary">Shaking the phone adds time to the running timer</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="wifi_only">Download on Wi-Fi only</string>
+    <string name="wifi_only_summary">Downloads wait until you are connected to Wi-Fi</string>
+    <string name="delete_after_played">Delete after listening</string>
+    <string name="delete_after_played_summary">Remove the downloaded file when an episode is finished</string>
+    <string name="auto_download_count">New episodes to download automatically per refresh</string>
+    <string name="settings_feeds">Feeds</string>
+    <string name="refresh_interval">Automatic refresh</string>
+    <string name="refresh_manual">Manual</string>
+    <string name="hours_short">%d h</string>
+    <string name="add_new_to_queue">Add new episodes to queue</string>
+    <string name="add_new_to_queue_summary">Newly published episodes are appended to the queue</string>
+    <string name="settings_about">About</string>
+    <string name="about_summary">Open-source podcast app · MIT license · Search powered by Podcast Index</string>
+</resources>

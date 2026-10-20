@@ -23,14 +23,29 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Unit test
-        run: ./gradlew testDebugUnitTest --stacktrace
-
       - name: Build debug APK
         env:
           PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
           PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee -a build.log
+
+      - name: Unit test
+        if: success() || failure()
+        run: |
+          set -o pipefail
+          ./gradlew testDebugUnitTest --stacktrace 2>&1 | tee -a build.log
+
+      # Riassume gli errori in un'unica annotazione, leggibile anche senza scaricare i log.
+      - name: Report errors
+        if: failure()
+        run: |
+          errors=$(grep -E "^e: |^w: .*unresolved|error:|What went wrong|^> |FAILED|Exception:" build.log \
+            | grep -v "^> Task" | head -c 60000 || true)
+          errors="${errors//'%'/'%25'}"
+          errors="${errors//$'\n'/'%0A'}"
+          echo "::error title=Build errors::${errors}"
 
       - name: Rename APK
         run: |

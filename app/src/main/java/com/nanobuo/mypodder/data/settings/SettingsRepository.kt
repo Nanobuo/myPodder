@@ -1,0 +1,105 @@
+package com.nanobuo.mypodder.data.settings
+
+import android.content.Context
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.dataStore by preferencesDataStore(name = "settings")
+
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+data class AppSettings(
+    val theme: ThemeMode = ThemeMode.SYSTEM,
+    val dynamicColor: Boolean = true,
+    val skipBackSec: Int = 10,
+    val skipForwardSec: Int = 30,
+    val speed: Float = 1f,
+    val wifiOnly: Boolean = true,
+    val deleteAfterPlayed: Boolean = false,
+    val autoDownloadCount: Int = 3,
+    val refreshHours: Int = 6,
+    val addNewToQueue: Boolean = true,
+    val shakeToExtend: Boolean = true,
+    val sleepMinutes: Int = 30,
+)
+
+@Singleton
+class SettingsRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    appScope: CoroutineScope,
+) {
+    private object Keys {
+        val theme = intPreferencesKey("theme")
+        val dynamicColor = booleanPreferencesKey("dynamic_color")
+        val skipBack = intPreferencesKey("skip_back")
+        val skipForward = intPreferencesKey("skip_forward")
+        val speed = floatPreferencesKey("speed")
+        val wifiOnly = booleanPreferencesKey("wifi_only")
+        val deleteAfterPlayed = booleanPreferencesKey("delete_after_played")
+        val autoDownloadCount = intPreferencesKey("auto_download_count")
+        val refreshHours = intPreferencesKey("refresh_hours")
+        val addNewToQueue = booleanPreferencesKey("add_new_to_queue")
+        val shakeToExtend = booleanPreferencesKey("shake_to_extend")
+        val sleepMinutes = intPreferencesKey("sleep_minutes")
+        val lastEpisode = longPreferencesKey("last_episode")
+    }
+
+    private val defaults = AppSettings()
+
+    val flow: Flow<AppSettings> = context.dataStore.data.map { p ->
+        AppSettings(
+            theme = ThemeMode.entries.getOrElse(p[Keys.theme] ?: 0) { ThemeMode.SYSTEM },
+            dynamicColor = p[Keys.dynamicColor] ?: defaults.dynamicColor,
+            skipBackSec = p[Keys.skipBack] ?: defaults.skipBackSec,
+            skipForwardSec = p[Keys.skipForward] ?: defaults.skipForwardSec,
+            speed = p[Keys.speed] ?: defaults.speed,
+            wifiOnly = p[Keys.wifiOnly] ?: defaults.wifiOnly,
+            deleteAfterPlayed = p[Keys.deleteAfterPlayed] ?: defaults.deleteAfterPlayed,
+            autoDownloadCount = p[Keys.autoDownloadCount] ?: defaults.autoDownloadCount,
+            refreshHours = p[Keys.refreshHours] ?: defaults.refreshHours,
+            addNewToQueue = p[Keys.addNewToQueue] ?: defaults.addNewToQueue,
+            shakeToExtend = p[Keys.shakeToExtend] ?: defaults.shakeToExtend,
+            sleepMinutes = p[Keys.sleepMinutes] ?: defaults.sleepMinutes,
+        )
+    }
+
+    /** Valore sempre disponibile in modo sincrono (es. per il player). */
+    val state: StateFlow<AppSettings> = flow.stateIn(appScope, SharingStarted.Eagerly, defaults)
+
+    suspend fun current(): AppSettings = flow.first()
+
+    val lastEpisodeId: Flow<Long?> = context.dataStore.data.map { it[Keys.lastEpisode] }
+
+    private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
+        context.dataStore.edit { it[key] = value }
+    }
+
+    suspend fun setTheme(mode: ThemeMode) = set(Keys.theme, mode.ordinal)
+    suspend fun setDynamicColor(v: Boolean) = set(Keys.dynamicColor, v)
+    suspend fun setSkipBack(v: Int) = set(Keys.skipBack, v)
+    suspend fun setSkipForward(v: Int) = set(Keys.skipForward, v)
+    suspend fun setSpeed(v: Float) = set(Keys.speed, v)
+    suspend fun setWifiOnly(v: Boolean) = set(Keys.wifiOnly, v)
+    suspend fun setDeleteAfterPlayed(v: Boolean) = set(Keys.deleteAfterPlayed, v)
+    suspend fun setAutoDownloadCount(v: Int) = set(Keys.autoDownloadCount, v)
+    suspend fun setRefreshHours(v: Int) = set(Keys.refreshHours, v)
+    suspend fun setAddNewToQueue(v: Boolean) = set(Keys.addNewToQueue, v)
+    suspend fun setShakeToExtend(v: Boolean) = set(Keys.shakeToExtend, v)
+    suspend fun setSleepMinutes(v: Int) = set(Keys.sleepMinutes, v)
+    suspend fun setLastEpisode(id: Long) = set(Keys.lastEpisode, id)
+}

@@ -41,7 +41,7 @@ jobs:
       - name: Report errors
         if: failure()
         run: |
-          errors=$(grep -E "^e: |^w: .*unresolved|error:|What went wrong|^> |FAILED|Exception:" build.log \
+          errors=$(grep -E -A2 "^e: |error:|What went wrong|^> |FAILED|Exception:|^ *[0-9]+\. Dependency" build.log \
             | grep -v "^> Task" | head -c 60000 || true)
           errors="${errors//'%'/'%25'}"
           errors="${errors//$'\n'/'%0A'}"

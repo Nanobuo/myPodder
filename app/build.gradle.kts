@@ -18,7 +18,7 @@ fun secret(name: String): String =
 
 android {
     namespace = "com.nanobuo.mypodder"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.nanobuo.mypodder"

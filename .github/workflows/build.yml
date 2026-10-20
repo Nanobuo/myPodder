@@ -117,7 +117,7 @@ jobs:
             echo "::error title=Signing key missing::Add RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD and RELEASE_KEY_ALIAS to the repository secrets."
             exit 1
           fi
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" | LC_ALL=C tr -cd 'A-Za-z0-9+/=' | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Build release APK
         if: steps.version.outputs.publish == 'true'
@@ -125,11 +125,16 @@ jobs:
           PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
           PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
           RELEASE_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
-          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RAW_STORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RAW_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RAW_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           set -o pipefail
+          # Toglie spazi, a capo e caratteri invisibili finiti nei Secrets durante il copia-incolla.
+          clean() { printf '%s' "$1" | LC_ALL=C tr -cd '[:graph:]'; }
+          export RELEASE_KEYSTORE_PASSWORD="$(clean "$RAW_STORE_PASSWORD")"
+          export RELEASE_KEY_ALIAS="$(clean "$RAW_KEY_ALIAS")"
+          export RELEASE_KEY_PASSWORD="$(clean "$RAW_KEY_PASSWORD")"
           ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
 
       - name: Report errors

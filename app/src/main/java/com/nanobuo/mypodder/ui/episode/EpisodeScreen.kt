@@ -1,6 +1,5 @@
 package com.nanobuo.mypodder.ui.episode
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -80,7 +79,6 @@ fun EpisodeScreen(
     val chapters by viewModel.chapters.collectAsStateWithLifecycle()
     val actions = LocalEpisodeActions.current
     val highlight = LocalPlaybackHighlight.current
-    BackHandler(onBack = onBack)
 
     CoverTheme(item?.podcastImage) {
         Scaffold(

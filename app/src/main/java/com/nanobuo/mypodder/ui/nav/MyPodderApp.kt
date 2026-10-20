@@ -224,8 +224,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                 }
                 composable<EpisodeRoute> {
                     EpisodeScreen(
-                        // Indietro dalla scheda episodio torna sempre alla schermata iniziale.
-                        onBack = { if (!nav.popBackStack(LibraryRoute, inclusive = false)) nav.navigate(LibraryRoute) },
+                        onBack = { nav.popBackStack() },
                         onPodcast = { nav.navigate(PodcastRoute(it)) },
                     )
                 }
@@ -243,8 +242,17 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                 composable<PlayerRoute> {
                     PlayerScreen(
                         onClose = { nav.popBackStack() },
-                        onOpenQueue = { nav.navigate(QueueRoute) { launchSingleTop = true } },
-                        onEpisode = { nav.navigate(EpisodeRoute(it)) },
+                        // Uscendo dal player verso un'altra pagina, il player lascia la cronologia:
+                        // Indietro torna alla pagina sotto il player, che si riapre solo dal mini-player.
+                        onOpenQueue = {
+                            nav.navigate(QueueRoute) {
+                                popUpTo<PlayerRoute> { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        onEpisode = {
+                            nav.navigate(EpisodeRoute(it)) { popUpTo<PlayerRoute> { inclusive = true } }
+                        },
                     )
                 }
             }

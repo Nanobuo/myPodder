@@ -1,6 +1,12 @@
 package com.nanobuo.mypodder.ui.nav
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,7 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Podcasts
@@ -64,11 +69,13 @@ import com.nanobuo.mypodder.ui.settings.SettingsScreen
 import com.nanobuo.mypodder.ui.stats.StatsScreen
 import kotlin.reflect.KClass
 
+private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
+
 private data class TopLevel(val route: Any, val routeClass: KClass<*>, val icon: ImageVector, val label: Int)
 
 private val topLevels = listOf(
     TopLevel(LibraryRoute, LibraryRoute::class, Icons.Rounded.Podcasts, R.string.nav_library),
-    TopLevel(QueueRoute, QueueRoute::class, Icons.AutoMirrored.Rounded.QueueMusic, R.string.nav_queue),
     TopLevel(SearchRoute, SearchRoute::class, Icons.Rounded.Search, R.string.nav_search),
     TopLevel(DownloadsRoute, DownloadsRoute::class, Icons.Rounded.Download, R.string.nav_downloads),
     TopLevel(StatsRoute, StatsRoute::class, Icons.Rounded.BarChart, R.string.nav_stats),
@@ -147,6 +154,32 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
             NavHost(
                 navController = nav,
                 startDestination = LibraryRoute,
+                // Transizioni brevi in stile "fade through": niente dissolvenze lunghe o scatti.
+                enterTransition = {
+                    if (targetState.destination.hasRoute(PlayerRoute::class)) {
+                        slideInVertically(tween(380, easing = EmphasizedDecelerate)) { it }
+                    } else {
+                        fadeIn(tween(210, delayMillis = 70, easing = LinearOutSlowInEasing)) +
+                            scaleIn(tween(280, easing = EmphasizedDecelerate), initialScale = 0.96f)
+                    }
+                },
+                exitTransition = {
+                    // Sotto il player la schermata resta ferma mentre il player sale.
+                    if (targetState.destination.hasRoute(PlayerRoute::class)) ExitTransition.KeepUntilTransitionsFinished
+                    else fadeOut(tween(90, easing = FastOutLinearInEasing))
+                },
+                popEnterTransition = {
+                    if (initialState.destination.hasRoute(PlayerRoute::class)) EnterTransition.None
+                    else fadeIn(tween(210, delayMillis = 70, easing = LinearOutSlowInEasing)) +
+                        scaleIn(tween(280, easing = EmphasizedDecelerate), initialScale = 0.96f)
+                },
+                popExitTransition = {
+                    if (initialState.destination.hasRoute(PlayerRoute::class)) {
+                        slideOutVertically(tween(300, easing = EmphasizedAccelerate)) { it }
+                    } else {
+                        fadeOut(tween(90, easing = FastOutLinearInEasing))
+                    }
+                },
                 modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
             ) {
                 composable<LibraryRoute> {
@@ -158,7 +191,10 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                     )
                 }
                 composable<QueueRoute> {
-                    QueueScreen(onEpisode = { nav.navigate(EpisodeRoute(it)) })
+                    QueueScreen(
+                        onBack = { nav.popBackStack() },
+                        onEpisode = { nav.navigate(EpisodeRoute(it)) },
+                    )
                 }
                 composable<SearchRoute> {
                     SearchScreen(onPreview = { url, title, image -> nav.navigate(PreviewRoute(url, title, image)) })
@@ -196,14 +232,10 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                         },
                     )
                 }
-                composable<PlayerRoute>(
-                    enterTransition = { slideInVertically(tween(400)) { it } + fadeIn() },
-                    exitTransition = { fadeOut(tween(200)) },
-                    popEnterTransition = { fadeIn(tween(200)) },
-                    popExitTransition = { slideOutVertically(tween(350)) { it } + fadeOut() },
-                ) {
+                composable<PlayerRoute> {
                     PlayerScreen(
                         onClose = { nav.popBackStack() },
+                        onOpenQueue = { nav.navigate(QueueRoute) { launchSingleTop = true } },
                         onEpisode = { nav.navigate(EpisodeRoute(it)) },
                     )
                 }

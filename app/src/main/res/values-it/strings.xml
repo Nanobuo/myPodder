@@ -163,5 +163,10 @@
     <string name="add_new_to_queue">Aggiungi i nuovi episodi alla coda</string>
     <string name="add_new_to_queue_summary">Gli episodi appena pubblicati vengono messi in coda</string>
     <string name="settings_about">Informazioni</string>
-    <string name="about_summary">App di podcast open source · licenza MIT · ricerca tramite Podcast Index</string>
+    <string name="new_badge">Indicatore dei nuovi episodi</string>
+    <string name="badge_dot">Punto</string>
+    <string name="badge_count">Numero</string>
+    <string name="badge_none">Nessuno</string>
+    <string name="version">Versione %s</string>
+    <string name="manage_queue">Gestisci</string>
 </resources>

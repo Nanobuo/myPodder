@@ -166,5 +166,10 @@
     <string name="add_new_to_queue">Add new episodes to queue</string>
     <string name="add_new_to_queue_summary">Newly published episodes are appended to the queue</string>
     <string name="settings_about">About</string>
-    <string name="about_summary">Open-source podcast app · MIT license · Search powered by Podcast Index</string>
+    <string name="new_badge">New episodes indicator</string>
+    <string name="badge_dot">Dot</string>
+    <string name="badge_count">Number</string>
+    <string name="badge_none">None</string>
+    <string name="version">Version %s</string>
+    <string name="manage_queue">Manage</string>
 </resources>

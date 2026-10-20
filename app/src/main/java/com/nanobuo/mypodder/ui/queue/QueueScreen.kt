@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.ClearAll
 import androidx.compose.material.icons.rounded.Close
@@ -72,7 +73,7 @@ class QueueViewModel @Inject constructor(private val episodes: EpisodeRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QueueScreen(onEpisode: (Long) -> Unit, viewModel: QueueViewModel = hiltViewModel()) {
+fun QueueScreen(onBack: () -> Unit, onEpisode: (Long) -> Unit, viewModel: QueueViewModel = hiltViewModel()) {
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
 
@@ -94,6 +95,9 @@ fun QueueScreen(onEpisode: (Long) -> Unit, viewModel: QueueViewModel = hiltViewM
                             )
                         }
                     }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back)) }
                 },
                 actions = {
                     if (!queue.isNullOrEmpty()) {

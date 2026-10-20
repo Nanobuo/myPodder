@@ -9,6 +9,7 @@ import com.nanobuo.mypodder.data.opml.OpmlManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.repo.PodcastRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.settings.NewBadgeStyle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +29,9 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
     val grid: StateFlow<Boolean> = settings.flow.map { it.libraryGrid }
         .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.libraryGrid)
+
+    val badgeStyle: StateFlow<NewBadgeStyle> = settings.flow.map { it.newBadge }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, settings.state.value.newBadge)
 
     fun toggleLayout() {
         viewModelScope.launch { settings.setLibraryGrid(!grid.value) }

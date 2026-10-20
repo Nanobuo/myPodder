@@ -23,6 +23,9 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Come segnalare i nuovi episodi nella libreria. */
+enum class NewBadgeStyle { COUNT, DOT, NONE }
+
 data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
@@ -38,6 +41,7 @@ data class AppSettings(
     val sleepMinutes: Int = 30,
     val libraryGrid: Boolean = true,
     val showRemaining: Boolean = true,
+    val newBadge: NewBadgeStyle = NewBadgeStyle.DOT,
 )
 
 @Singleton
@@ -61,6 +65,7 @@ class SettingsRepository @Inject constructor(
         val lastEpisode = longPreferencesKey("last_episode")
         val libraryGrid = booleanPreferencesKey("library_grid")
         val showRemaining = booleanPreferencesKey("show_remaining")
+        val newBadge = intPreferencesKey("new_badge")
     }
 
     private val defaults = AppSettings()
@@ -81,6 +86,7 @@ class SettingsRepository @Inject constructor(
             sleepMinutes = p[Keys.sleepMinutes] ?: defaults.sleepMinutes,
             libraryGrid = p[Keys.libraryGrid] ?: defaults.libraryGrid,
             showRemaining = p[Keys.showRemaining] ?: defaults.showRemaining,
+            newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
 
@@ -110,4 +116,5 @@ class SettingsRepository @Inject constructor(
     suspend fun setLastEpisode(id: Long) = set(Keys.lastEpisode, id)
     suspend fun setLibraryGrid(v: Boolean) = set(Keys.libraryGrid, v)
     suspend fun setShowRemaining(v: Boolean) = set(Keys.showRemaining, v)
+    suspend fun setNewBadge(v: NewBadgeStyle) = set(Keys.newBadge, v.ordinal)
 }

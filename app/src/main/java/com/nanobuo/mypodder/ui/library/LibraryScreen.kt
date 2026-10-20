@@ -1,6 +1,11 @@
 package com.nanobuo.mypodder.ui.library
 
 import androidx.compose.foundation.clickable
+import com.nanobuo.mypodder.ui.components.Wordmark
+import com.nanobuo.mypodder.data.settings.NewBadgeStyle
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,6 +99,7 @@ fun LibraryScreen(
     val refreshResult by viewModel.refreshResult.collectAsStateWithLifecycle()
     val opmlStatus by viewModel.opmlStatus.collectAsStateWithLifecycle()
     val grid by viewModel.grid.collectAsStateWithLifecycle()
+    val badgeStyle by viewModel.badgeStyle.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -116,7 +123,7 @@ fun LibraryScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = { Wordmark() },
                 scrollBehavior = scrollBehavior,
                 actions = {
                     if (refreshing) {
@@ -188,8 +195,8 @@ fun LibraryScreen(
                     }
                     when {
                         tab == 1 -> LatestEpisodes(latest, onEpisode)
-                        grid -> PodcastGrid(list, onPodcast)
-                        else -> PodcastList(list, onPodcast)
+                        grid -> PodcastGrid(list, badgeStyle, onPodcast)
+                        else -> PodcastList(list, badgeStyle, onPodcast)
                     }
                 }
             }
@@ -198,7 +205,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun PodcastGrid(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Unit) {
+private fun PodcastGrid(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyle, onPodcast: (Long) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
@@ -219,9 +226,10 @@ private fun PodcastGrid(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Uni
                         .aspectRatio(1f)
                 ) {
                     Artwork(podcast.imageUrl, Modifier.fillMaxSize(), size = null, corner = 20.dp)
-                    if (item.newCount > 0) {
+                    if (item.newCount > 0 && badgeStyle != NewBadgeStyle.NONE) {
                         NewBadge(
                             item.newCount,
+                            badgeStyle,
                             Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(6.dp),
@@ -241,7 +249,7 @@ private fun PodcastGrid(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Uni
 }
 
 @Composable
-private fun PodcastList(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Unit) {
+private fun PodcastList(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyle, onPodcast: (Long) -> Unit) {
     LazyColumn(Modifier.fillMaxSize()) {
         items(podcasts, key = { it.podcast.id }) { item ->
             val podcast = item.podcast
@@ -253,8 +261,8 @@ private fun PodcastList(podcasts: List<PodcastWithNew>, onPodcast: (Long) -> Uni
                     null
                 },
                 leadingContent = { Artwork(podcast.imageUrl, size = 56.dp) },
-                trailingContent = if (item.newCount > 0) {
-                    { NewBadge(item.newCount) }
+                trailingContent = if (item.newCount > 0 && badgeStyle != NewBadgeStyle.NONE) {
+                    { NewBadge(item.newCount, badgeStyle) }
                 } else {
                     null
                 },
@@ -278,21 +286,28 @@ private fun LatestEpisodes(items: List<com.nanobuo.mypodder.data.db.EpisodeItem>
     }
 }
 
-/** Badge con il numero di episodi nuovi non ancora visti. */
+/** Segnala i nuovi episodi con il numero oppure con un semplice punto. */
 @Composable
-private fun NewBadge(count: Int, modifier: Modifier = Modifier) {
+private fun NewBadge(count: Int, style: NewBadgeStyle, modifier: Modifier = Modifier) {
+    val dot = style == NewBadgeStyle.DOT
+    val description = pluralStringResource(R.plurals.new_episodes, count, count)
     Surface(
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
         shape = RoundedCornerShape(50),
         shadowElevation = 2.dp,
-        modifier = modifier,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
+        modifier = modifier.semantics { contentDescription = description },
     ) {
-        Text(
-            if (count > 99) "99+" else count.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-        )
+        if (dot) {
+            Box(Modifier.size(12.dp))
+        } else {
+            Text(
+                if (count > 99) "99+" else count.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
     }
 }

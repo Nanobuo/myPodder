@@ -48,6 +48,7 @@ import com.nanobuo.mypodder.R
 import com.nanobuo.mypodder.data.opml.OpmlManager
 import com.nanobuo.mypodder.data.repo.PodcastRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.settings.NewBadgeStyle
 import com.nanobuo.mypodder.data.settings.ThemeMode
 import com.nanobuo.mypodder.ui.components.OpmlStatusEffect
 import com.nanobuo.mypodder.ui.components.rememberOpmlLaunchers
@@ -131,6 +132,15 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 ) { v -> viewModel.update { setDynamicColor(v) } }
             }
 
+            val badgeLabels = mapOf(
+                NewBadgeStyle.DOT to stringResource(R.string.badge_dot),
+                NewBadgeStyle.COUNT to stringResource(R.string.badge_count),
+                NewBadgeStyle.NONE to stringResource(R.string.badge_none),
+            )
+            ChoiceRow(stringResource(R.string.new_badge), badgeLabels.keys.toList(), s.newBadge, { badgeLabels[it].orEmpty() }) {
+                viewModel.update { setNewBadge(it) }
+            }
+
             Section(stringResource(R.string.settings_playback))
             ChoiceRow(stringResource(R.string.skip_back_interval), listOf(5, 10, 15, 30), s.skipBackSec, { "${it}s" }) {
                 viewModel.update { setSkipBack(it) }
@@ -191,8 +201,8 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 
             Section(stringResource(R.string.settings_about))
             ListItem(
-                headlineContent = { Text("myPodder ${BuildConfig.VERSION_NAME}") },
-                supportingContent = { Text(stringResource(R.string.about_summary)) },
+                headlineContent = { Text(stringResource(R.string.app_name)) },
+                supportingContent = { Text(stringResource(R.string.version, BuildConfig.VERSION_NAME)) },
                 leadingContent = { Icon(Icons.Rounded.Info, null) },
             )
             Box(Modifier.padding(16.dp))

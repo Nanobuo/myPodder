@@ -100,6 +100,7 @@ private enum class Sheet { NONE, SPEED, SLEEP, CHAPTERS, QUEUE }
 @Composable
 fun PlayerScreen(
     onClose: () -> Unit,
+    onOpenQueue: () -> Unit,
     onEpisode: (Long) -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
@@ -321,6 +322,7 @@ fun PlayerScreen(
                     items = queue,
                     onPlay = { viewModel.playFromQueue(it); sheet = Sheet.NONE },
                     onRemove = viewModel::removeFromQueue,
+                    onManage = { sheet = Sheet.NONE; onOpenQueue() },
                 )
                 Sheet.NONE -> Unit
             }
@@ -422,13 +424,21 @@ private fun SleepSheet(
 }
 
 @Composable
-private fun QueueSheet(items: List<EpisodeItem>, onPlay: (Long) -> Unit, onRemove: (Long) -> Unit) {
+private fun QueueSheet(
+    items: List<EpisodeItem>,
+    onPlay: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
+    onManage: () -> Unit,
+) {
     Column {
-        Text(
-            stringResource(R.string.up_next),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
+        Row(Modifier.padding(start = 24.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.up_next),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onManage) { Text(stringResource(R.string.manage_queue)) }
+        }
         if (items.isEmpty()) {
             Text(
                 stringResource(R.string.queue_empty),

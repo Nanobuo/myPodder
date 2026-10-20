@@ -1,4 +1,9 @@
-# myPodder
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.svg">
+    <img src="docs/logo.svg" alt="myPodder" width="260">
+  </picture>
+</h1>
 
 App Android per ascoltare i podcast.
 

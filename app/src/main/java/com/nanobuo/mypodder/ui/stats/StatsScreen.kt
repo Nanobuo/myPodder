@@ -2,6 +2,8 @@ package com.nanobuo.mypodder.ui.stats
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import com.nanobuo.mypodder.ui.nav.StatsRoute
+import com.nanobuo.mypodder.ui.nav.OnTabReselected
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
@@ -127,11 +129,13 @@ fun StatsScreen(onPodcast: (Long) -> Unit, viewModel: StatsViewModel = hiltViewM
             LoadingBox(Modifier.padding(padding))
             return@Scaffold
         }
+        val scrollState = rememberScrollState()
+        OnTabReselected(StatsRoute::class) { scrollState.animateScrollTo(0) }
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

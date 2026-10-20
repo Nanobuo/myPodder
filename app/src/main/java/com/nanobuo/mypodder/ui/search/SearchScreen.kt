@@ -1,6 +1,9 @@
 package com.nanobuo.mypodder.ui.search
 
 import androidx.compose.foundation.clickable
+import com.nanobuo.mypodder.ui.nav.SearchRoute
+import com.nanobuo.mypodder.ui.nav.OnTabReselected
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -129,7 +132,9 @@ private fun ResultList(
     footer: Boolean,
     onPreview: (String, String?, String?) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize()) {
+    val listState = rememberLazyListState()
+    OnTabReselected(SearchRoute::class) { listState.animateScrollToItem(0) }
+    LazyColumn(Modifier.fillMaxSize(), state = listState) {
         if (header != null) {
             item {
                 Text(

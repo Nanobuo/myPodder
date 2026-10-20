@@ -39,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.flow.MutableSharedFlow
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -98,7 +100,10 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
         if (openPlayerRequests > 0 && !onPlayer) nav.navigate(PlayerRoute) { launchSingleTop = true }
     }
 
+    val tabReselect = remember { MutableSharedFlow<KClass<*>>(extraBufferCapacity = 1) }
+
     CompositionLocalProvider(
+        LocalTabReselect provides tabReselect,
         LocalEpisodeActions provides viewModel,
         LocalPlaybackHighlight provides PlaybackHighlight(nowPlaying.episodeId, nowPlaying.isPlaying, queueIds),
     ) {
@@ -137,6 +142,10 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                                 ShortNavigationBarItem(
                                     selected = selected,
                                     onClick = {
+                                        if (selected) {
+                                            tabReselect.tryEmit(t.routeClass)
+                                            return@ShortNavigationBarItem
+                                        }
                                         nav.navigate(t.route) {
                                             popUpTo(nav.graph.findStartDestination().id) { saveState = true }
                                             launchSingleTop = true
@@ -235,7 +244,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                         initialImage = route.imageUrl,
                         onBack = { nav.popBackStack() },
                         onSubscribed = { id ->
-                            nav.navigate(PodcastRoute(id)) { popUpTo<PreviewRoute> { inclusive = true } }
+                            nav.navigate(PodcastRoute(id)) { popUpTo<LibraryRoute> { inclusive = false } }
                         },
                     )
                 }

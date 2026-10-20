@@ -1,6 +1,10 @@
 package com.nanobuo.mypodder.ui.library
 
 import androidx.compose.foundation.clickable
+import com.nanobuo.mypodder.ui.nav.OnTabReselected
+import com.nanobuo.mypodder.ui.nav.LibraryRoute
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -225,7 +229,10 @@ fun LibraryScreen(
 
 @Composable
 private fun PodcastGrid(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyle, onPodcast: (Long) -> Unit) {
+    val gridState = rememberLazyGridState()
+    OnTabReselected(LibraryRoute::class) { gridState.animateScrollToItem(0) }
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(3),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -269,7 +276,9 @@ private fun PodcastGrid(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyl
 
 @Composable
 private fun PodcastList(podcasts: List<PodcastWithNew>, badgeStyle: NewBadgeStyle, onPodcast: (Long) -> Unit) {
-    LazyColumn(Modifier.fillMaxSize()) {
+    val listState = rememberLazyListState()
+    OnTabReselected(LibraryRoute::class) { listState.animateScrollToItem(0) }
+    LazyColumn(Modifier.fillMaxSize(), state = listState) {
         items(podcasts, key = { it.podcast.id }) { item ->
             val podcast = item.podcast
             ListItem(
@@ -299,7 +308,9 @@ private fun LatestEpisodes(items: List<com.nanobuo.mypodder.data.db.EpisodeItem>
         }
         return
     }
-    LazyColumn(Modifier.fillMaxSize()) {
+    val listState = rememberLazyListState()
+    OnTabReselected(LibraryRoute::class) { listState.animateScrollToItem(0) }
+    LazyColumn(Modifier.fillMaxSize(), state = listState) {
         items(items, key = { it.episode.id }) { item ->
             EpisodeRow(item, onClick = { onEpisode(item.episode.id) })
             HorizontalDivider(Modifier.padding(start = 84.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest)

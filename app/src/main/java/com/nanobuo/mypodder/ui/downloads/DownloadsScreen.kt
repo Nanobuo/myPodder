@@ -1,6 +1,9 @@
 package com.nanobuo.mypodder.ui.downloads
 
 import androidx.compose.foundation.layout.Arrangement
+import com.nanobuo.mypodder.ui.nav.OnTabReselected
+import com.nanobuo.mypodder.ui.nav.DownloadsRoute
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -92,7 +95,9 @@ fun DownloadsScreen(onEpisode: (Long) -> Unit, viewModel: DownloadsViewModel = h
             LoadingBox(Modifier.padding(padding))
             return@Scaffold
         }
-        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+        val listState = rememberLazyListState()
+        OnTabReselected(DownloadsRoute::class) { listState.animateScrollToItem(0) }
+        LazyColumn(Modifier.fillMaxSize().padding(padding), state = listState) {
             item {
                 val free = remember(used) { viewModel.freeBytes() }
                 Card(

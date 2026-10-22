@@ -201,4 +201,9 @@
     <string name="sleep_custom">Personalizzato</string>
     <string name="sleep_durations">Ferma dopo</string>
     <string name="sleep_start">Avvia timer</string>
+    <string name="show">Vedi</string>
+    <plurals name="new_episodes_available">
+        <item quantity="one">%d nuovo episodio disponibile</item>
+        <item quantity="other">%d nuovi episodi disponibili</item>
+    </plurals>
 </resources>

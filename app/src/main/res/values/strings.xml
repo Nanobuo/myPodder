@@ -204,4 +204,9 @@
     <string name="sleep_custom">Custom</string>
     <string name="sleep_durations">Stop after</string>
     <string name="sleep_start">Start timer</string>
+    <string name="show">Show</string>
+    <plurals name="new_episodes_available">
+        <item quantity="one">%d new episode available</item>
+        <item quantity="other">%d new episodes available</item>
+    </plurals>
 </resources>

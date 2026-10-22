@@ -40,6 +40,7 @@ class EpisodeRepository @Inject constructor(
     suspend fun savePosition(id: Long, positionMs: Long) = episodeDao.savePosition(id, positionMs)
     suspend fun setDuration(id: Long, durationMs: Long) = episodeDao.setDuration(id, durationMs)
     suspend fun clearNew(podcastId: Long) = episodeDao.clearNew(podcastId)
+    suspend fun countNew(): Int = episodeDao.countNew()
 
     /** Segna un episodio come ascoltato (o no), con le azioni collegate. */
     suspend fun setCompleted(id: Long, completed: Boolean, fromPlayback: Boolean = false) {

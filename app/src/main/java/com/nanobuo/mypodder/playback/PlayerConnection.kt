@@ -10,6 +10,13 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +43,9 @@ data class NowPlaying(
 @Singleton
 class PlayerConnection @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val episodes: EpisodeRepository,
+    private val settings: SettingsRepository,
+    private val appScope: CoroutineScope,
 ) {
     private var future: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
@@ -62,6 +72,7 @@ class PlayerConnection @Inject constructor(
             controller = c
             c.addListener(listener)
             update()
+            restoreIfIdle(c)
             pending.toList().forEach { it(c) }
             pending.clear()
         }, ContextCompat.getMainExecutor(context))
@@ -131,6 +142,25 @@ class PlayerConnection @Inject constructor(
         }
     }
 
+    /**
+     * Se il player è vuoto (es. app riaperta dopo che il servizio è stato chiuso) carica, senza
+     * avviarlo, l'ultimo episodio non finito o il primo della coda: così il mini-player resta
+     * visibile finché c'è qualcosa da ascoltare. La riproduzione parte solo con Play.
+     */
+    private fun restoreIfIdle(c: MediaController) {
+        if (c.mediaItemCount > 0 || pending.isNotEmpty()) return
+        appScope.launch {
+            val last = settings.lastEpisodeId.first()?.let { episodes.get(it) }
+            val id = last?.takeIf { !it.episode.completed }?.episode?.id ?: episodes.nextInQueue()
+            id ?: return@launch
+            withContext(Dispatchers.Main) {
+                if (controller === c && c.mediaItemCount == 0) {
+                    c.setMediaItem(MediaItem.Builder().setMediaId(id.toString()).build())
+                }
+            }
+        }
+    }
+
     private fun update() {
         val c = controller ?: return
         val item = c.currentMediaItem
@@ -142,7 +172,8 @@ class PlayerConnection @Inject constructor(
             artworkUri = meta.artworkUri?.toString(),
             isPlaying = c.isPlaying,
             isBuffering = c.playbackState == Player.STATE_BUFFERING && c.playWhenReady,
-            durationMs = c.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: 0,
+            durationMs = c.duration.takeIf { it != C.TIME_UNSET && it > 0 }
+                ?: meta.durationMs?.takeIf { it > 0 } ?: 0,
             speed = c.playbackParameters.speed,
         )
     }

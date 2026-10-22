@@ -39,6 +39,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import kotlinx.coroutines.flow.MutableSharedFlow
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -102,6 +109,27 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
     }
 
     val tabReselect = remember { MutableSharedFlow<KClass<*>>(extraBufferCapacity = 1) }
+    val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var openLatestRequests by remember { mutableIntStateOf(0) }
+    val newAtStart by viewModel.newEpisodesAtStart.collectAsStateWithLifecycle()
+    LaunchedEffect(newAtStart) {
+        val count = newAtStart ?: return@LaunchedEffect
+        viewModel.consumeNewEpisodesAtStart()
+        val result = snackbar.showSnackbar(
+            context.resources.getQuantityString(R.plurals.new_episodes_available, count, count),
+            actionLabel = context.getString(R.string.show),
+            withDismissAction = true,
+            duration = SnackbarDuration.Long,
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            nav.navigate(LibraryRoute) {
+                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+            }
+            openLatestRequests++
+        }
+    }
     val updateState by viewModel.updates.state.collectAsStateWithLifecycle()
     UpdateDialog(
         state = updateState,
@@ -115,6 +143,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
         LocalPlaybackHighlight provides PlaybackHighlight(nowPlaying.episodeId, nowPlaying.isPlaying, queueIds),
     ) {
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 Column {
                     AnimatedVisibility(
@@ -201,6 +230,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
             ) {
                 composable<LibraryRoute> {
                     LibraryScreen(
+                        openLatestRequests = openLatestRequests,
                         onPodcast = { nav.navigate(PodcastRoute(it)) },
                         onEpisode = { nav.navigate(EpisodeRoute(it)) },
                         onSearch = { nav.navigate(SearchRoute) },

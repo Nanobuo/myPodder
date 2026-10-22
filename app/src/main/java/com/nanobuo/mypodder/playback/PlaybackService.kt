@@ -250,6 +250,7 @@ class PlaybackService : MediaSessionService() {
                     .setIsPlayable(true)
                     .setIsBrowsable(false)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
+                    .apply { if (ep.durationMs > 0) setDurationMs(ep.durationMs) }
                     .build()
             )
             .build()
@@ -346,12 +347,17 @@ class PlaybackService : MediaSessionService() {
         accumulate()
         flush(savePosition = false)
         episodes.setCompleted(item.episode.id, true, fromPlayback = true)
-        if (sleepTimer.state.value == SleepState.EndOfEpisode) {
-            sleepTimer.cancel()
+        val stopHere = sleepTimer.state.value == SleepState.EndOfEpisode
+        if (stopHere) sleepTimer.cancel()
+        val next = episodes.nextInQueue()?.let { episodes.get(it) }
+        if (next == null) {
+            // Coda finita: niente più da riprodurre, il mini-player sparisce.
+            player.clearMediaItems()
             return
         }
-        val next = episodes.nextInQueue()?.let { episodes.get(it) } ?: return
         player.setMediaItem(buildItem(next), resumePosition(next))
+        // Con lo sleep timer "fine episodio" il prossimo resta pronto, ma non parte.
+        if (stopHere) return
         player.prepare()
         player.play()
     }

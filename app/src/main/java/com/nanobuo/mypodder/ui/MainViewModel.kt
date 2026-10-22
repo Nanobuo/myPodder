@@ -11,6 +11,7 @@ import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.ui.components.EpisodeActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,8 +31,20 @@ class MainViewModel @Inject constructor(
     val updates: UpdateManager,
 ) : ViewModel(), EpisodeActions {
 
+    /** Nuovi episodi da segnalare all'apertura dell'app (una volta per avvio). */
+    private val _newEpisodesAtStart = MutableStateFlow<Int?>(null)
+    val newEpisodesAtStart: StateFlow<Int?> = _newEpisodesAtStart
+
     init {
         updates.checkIfDue()
+        viewModelScope.launch {
+            val count = episodes.countNew()
+            if (count > 0) _newEpisodesAtStart.value = count
+        }
+    }
+
+    fun consumeNewEpisodesAtStart() {
+        _newEpisodesAtStart.value = null
     }
 
     val settings: StateFlow<AppSettings?> = settingsRepository.flow

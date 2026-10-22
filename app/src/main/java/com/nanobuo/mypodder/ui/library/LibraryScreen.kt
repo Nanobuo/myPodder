@@ -97,6 +97,8 @@ import com.nanobuo.mypodder.ui.components.rememberOpmlLaunchers
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LibraryScreen(
+    /** Incrementato quando si chiede di mostrare la scheda "Ultimi episodi". */
+    openLatestRequests: Int,
     onPodcast: (Long) -> Unit,
     onEpisode: (Long) -> Unit,
     onSearch: () -> Unit,
@@ -114,6 +116,14 @@ fun LibraryScreen(
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    // Ogni richiesta va gestita una sola volta, anche se la schermata viene ricreata.
+    var handledLatestRequests by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(openLatestRequests) {
+        if (openLatestRequests > handledLatestRequests) {
+            handledLatestRequests = openLatestRequests
+            tab = 1
+        }
+    }
     var menuOpen by remember { mutableStateOf(false) }
     val opml = rememberOpmlLaunchers(viewModel::importOpml, viewModel::exportOpml)
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()

@@ -43,6 +43,8 @@ data class AppSettings(
     val showRemaining: Boolean = true,
     val newBadge: NewBadgeStyle = NewBadgeStyle.DOT,
     val coverColors: Boolean = false,
+    val autoCheckUpdates: Boolean = true,
+    val lastUpdateCheck: Long = 0,
 )
 
 @Singleton
@@ -68,6 +70,8 @@ class SettingsRepository @Inject constructor(
         val showRemaining = booleanPreferencesKey("show_remaining")
         val newBadge = intPreferencesKey("new_badge")
         val coverColors = booleanPreferencesKey("cover_colors")
+        val autoCheckUpdates = booleanPreferencesKey("auto_check_updates")
+        val lastUpdateCheck = longPreferencesKey("last_update_check")
     }
 
     private val defaults = AppSettings()
@@ -89,6 +93,8 @@ class SettingsRepository @Inject constructor(
             libraryGrid = p[Keys.libraryGrid] ?: defaults.libraryGrid,
             showRemaining = p[Keys.showRemaining] ?: defaults.showRemaining,
             coverColors = p[Keys.coverColors] ?: defaults.coverColors,
+            autoCheckUpdates = p[Keys.autoCheckUpdates] ?: defaults.autoCheckUpdates,
+            lastUpdateCheck = p[Keys.lastUpdateCheck] ?: defaults.lastUpdateCheck,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -121,4 +127,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setShowRemaining(v: Boolean) = set(Keys.showRemaining, v)
     suspend fun setNewBadge(v: NewBadgeStyle) = set(Keys.newBadge, v.ordinal)
     suspend fun setCoverColors(v: Boolean) = set(Keys.coverColors, v)
+    suspend fun setAutoCheckUpdates(v: Boolean) = set(Keys.autoCheckUpdates, v)
+    suspend fun setLastUpdateCheck(v: Long) = set(Keys.lastUpdateCheck, v)
 }

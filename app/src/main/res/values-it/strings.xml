@@ -182,4 +182,23 @@
     <string name="yesterday">Ieri</string>
     <string name="stats_reset_confirm">Verranno cancellate tutte le statistiche di ascolto: tempo totale, grafico, serie di giorni, episodi completati e tempo risparmiato.</string>
     <string name="stats_reset_action">Azzera</string>
+    <string name="update_available">Aggiornamento disponibile</string>
+    <string name="update_versions">È disponibile la versione %1$s (hai la %2$s).</string>
+    <string name="update_downloading">Download in corso…</string>
+    <string name="update_installing">Installazione in corso…</string>
+    <string name="update_permission">Per aggiornare consenti a myPodder di installare app, poi torna qui.</string>
+    <string name="update_error">Non è stato possibile installare l\'aggiornamento.</string>
+    <string name="update_allow">Consenti</string>
+    <string name="update_now">Aggiorna</string>
+    <string name="update_later">Più tardi</string>
+    <string name="update_check">Controlla aggiornamenti</string>
+    <string name="update_checking">Controllo in corso…</string>
+    <string name="update_up_to_date">Hai già l\'ultima versione</string>
+    <string name="update_check_error">Impossibile controllare gli aggiornamenti</string>
+    <string name="update_check_summary">Cerca una nuova versione su GitHub</string>
+    <string name="update_auto">Controlla aggiornamenti automaticamente</string>
+    <string name="sleep_extend_by">Prolunga di</string>
+    <string name="sleep_custom">Personalizzato</string>
+    <string name="sleep_durations">Ferma dopo</string>
+    <string name="sleep_start">Avvia timer</string>
 </resources>

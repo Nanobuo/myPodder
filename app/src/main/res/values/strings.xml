@@ -185,4 +185,23 @@
     <string name="yesterday">Yesterday</string>
     <string name="stats_reset_confirm">All listening statistics will be deleted: total time, chart, streaks, completed episodes and time saved.</string>
     <string name="stats_reset_action">Reset</string>
+    <string name="update_available">Update available</string>
+    <string name="update_versions">Version %1$s is available (you have %2$s).</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_permission">To update, allow myPodder to install apps, then come back here.</string>
+    <string name="update_error">The update could not be installed.</string>
+    <string name="update_allow">Allow</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Later</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You have the latest version</string>
+    <string name="update_check_error">Could not check for updates</string>
+    <string name="update_check_summary">Look for a new version on GitHub</string>
+    <string name="update_auto">Check for updates automatically</string>
+    <string name="sleep_extend_by">Extend by</string>
+    <string name="sleep_custom">Custom</string>
+    <string name="sleep_durations">Stop after</string>
+    <string name="sleep_start">Start timer</string>
 </resources>

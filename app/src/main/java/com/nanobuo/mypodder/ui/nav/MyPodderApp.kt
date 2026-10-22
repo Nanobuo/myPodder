@@ -56,6 +56,7 @@ import androidx.navigation.toRoute
 import com.nanobuo.mypodder.R
 import com.nanobuo.mypodder.ui.MainViewModel
 import com.nanobuo.mypodder.ui.components.LocalEpisodeActions
+import com.nanobuo.mypodder.ui.components.UpdateDialog
 import com.nanobuo.mypodder.ui.components.LocalPlaybackHighlight
 import com.nanobuo.mypodder.ui.components.PlaybackHighlight
 import com.nanobuo.mypodder.ui.downloads.DownloadsScreen
@@ -101,6 +102,12 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
     }
 
     val tabReselect = remember { MutableSharedFlow<KClass<*>>(extraBufferCapacity = 1) }
+    val updateState by viewModel.updates.state.collectAsStateWithLifecycle()
+    UpdateDialog(
+        state = updateState,
+        onUpdate = viewModel.updates::downloadAndInstall,
+        onDismiss = viewModel.updates::dismiss,
+    )
 
     CompositionLocalProvider(
         LocalTabReselect provides tabReselect,

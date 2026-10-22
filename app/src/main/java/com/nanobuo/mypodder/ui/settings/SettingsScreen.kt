@@ -3,6 +3,9 @@ package com.nanobuo.mypodder.ui.settings
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.clickable
+import com.nanobuo.mypodder.data.update.UpdateState
+import com.nanobuo.mypodder.data.update.UpdateManager
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +66,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     val repo: SettingsRepository,
     private val opml: OpmlManager,
+    private val updates: UpdateManager,
     podcasts: PodcastRepository,
 ) : ViewModel() {
     val settings = repo.state
@@ -73,6 +77,10 @@ class SettingsViewModel @Inject constructor(
     fun update(block: suspend SettingsRepository.() -> Unit) {
         viewModelScope.launch { repo.block() }
     }
+
+    val updateState = updates.state
+
+    fun checkUpdates() = updates.checkNow()
 
     fun importOpml(uri: Uri) = opml.import(uri)
     fun exportOpml(uri: Uri) = opml.export(uri, podcastCount.value)
@@ -210,6 +218,27 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 supportingContent = { Text(stringResource(R.string.version, BuildConfig.VERSION_NAME)) },
                 leadingContent = { Icon(Icons.Rounded.Info, null) },
             )
+            if (!BuildConfig.DEBUG) {
+                val update by viewModel.updateState.collectAsStateWithLifecycle()
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.update_check)) },
+                    supportingContent = {
+                        Text(
+                            when (update) {
+                                UpdateState.Checking -> stringResource(R.string.update_checking)
+                                UpdateState.UpToDate -> stringResource(R.string.update_up_to_date)
+                                is UpdateState.Error -> stringResource(R.string.update_check_error)
+                                else -> stringResource(R.string.update_check_summary)
+                            }
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Rounded.SystemUpdate, null) },
+                    modifier = Modifier.clickable(onClick = viewModel::checkUpdates),
+                )
+                SwitchRow(stringResource(R.string.update_auto), null, s.autoCheckUpdates) { v ->
+                    viewModel.update { setAutoCheckUpdates(v) }
+                }
+            }
             Box(Modifier.padding(16.dp))
         }
     }

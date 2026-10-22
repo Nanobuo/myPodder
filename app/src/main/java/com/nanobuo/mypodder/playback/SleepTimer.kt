@@ -34,6 +34,13 @@ class SleepTimer @Inject constructor() {
         _state.value = SleepState.Off
     }
 
+    /** Prolunga il timer di [minutes] minuti. */
+    fun extendBy(minutes: Int) {
+        val s = _state.value as? SleepState.Countdown ?: return
+        val base = maxOf(s.endsAtElapsed, SystemClock.elapsedRealtime())
+        _state.value = s.copy(endsAtElapsed = base + minutes * 60_000L)
+    }
+
     /** Prolunga il timer della sua durata iniziale (es. scuotendo il telefono). */
     fun extend() {
         val s = _state.value as? SleepState.Countdown ?: return

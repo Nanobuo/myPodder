@@ -93,5 +93,5 @@ class PlayerViewModel @Inject constructor(
 
     fun sleepAtEndOfEpisode() = sleepTimer.stopAtEndOfEpisode()
     fun cancelSleep() = sleepTimer.cancel()
-    fun extendSleep() = sleepTimer.extend()
+    fun extendSleep(minutes: Int) = sleepTimer.extendBy(minutes)
 }

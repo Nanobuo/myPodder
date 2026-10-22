@@ -2,6 +2,7 @@ package com.nanobuo.mypodder
 
 import com.nanobuo.mypodder.data.chapters.DescriptionChapterParser
 import com.nanobuo.mypodder.data.chapters.Id3ChapterParser
+import com.nanobuo.mypodder.data.update.UpdateManager
 import com.nanobuo.mypodder.util.parseClockToMs
 import com.nanobuo.mypodder.util.parseFeedDate
 import org.junit.Assert.assertEquals
@@ -17,6 +18,15 @@ class ParsersTest {
         assertEquals(3_723_000L, parseClockToMs("3723"))
         assertEquals(1_500L, parseClockToMs("00:00:01.500"))
         assertEquals(null, parseClockToMs("abc"))
+    }
+
+    @Test
+    fun versionComparison() {
+        assertTrue(UpdateManager.isNewer("1.2.0", "1.1.0"))
+        assertTrue(UpdateManager.isNewer("1.10.0", "1.9.3"))
+        assertTrue(UpdateManager.isNewer("2.0", "1.9.9"))
+        assertTrue(!UpdateManager.isNewer("1.1.0", "1.1.0"))
+        assertTrue(!UpdateManager.isNewer("1.0.9", "1.1.0"))
     }
 
     @Test

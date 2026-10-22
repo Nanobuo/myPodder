@@ -1,6 +1,10 @@
 package com.nanobuo.mypodder.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.Orientation
@@ -316,9 +320,10 @@ fun PlayerScreen(
                     state = sleepState,
                     remaining = sleepRemaining,
                     shakeEnabled = settings.shakeToExtend,
+                    lastMinutes = settings.sleepMinutes,
                     onStart = { viewModel.startSleep(it); sheet = Sheet.NONE },
                     onEndOfEpisode = { viewModel.sleepAtEndOfEpisode(); sheet = Sheet.NONE },
-                    onExtend = viewModel::extendSleep,
+                    onExtend = { viewModel.extendSleep(it) },
                     onCancel = { viewModel.cancelSleep(); sheet = Sheet.NONE },
                 )
                 Sheet.CHAPTERS -> ChaptersSheet(chapters, currentChapterIndex) {
@@ -382,12 +387,22 @@ private fun SleepSheet(
     state: SleepState,
     remaining: Long?,
     shakeEnabled: Boolean,
+    lastMinutes: Int,
     onStart: (Int) -> Unit,
     onEndOfEpisode: () -> Unit,
-    onExtend: () -> Unit,
+    onExtend: (Int) -> Unit,
     onCancel: () -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Selettore della durata personalizzata: null = chiuso, true = per prolungare, false = per avviare.
+    var customForExtend by remember { mutableStateOf<Boolean?>(null) }
+
+    Column(
+        Modifier
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp)
+            .animateContentSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Text(stringResource(R.string.sleep_timer), style = MaterialTheme.typography.titleMedium)
         when (state) {
             is SleepState.Countdown -> {
@@ -402,10 +417,21 @@ private fun SleepSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = onExtend) { Text(stringResource(R.string.sleep_extend)) }
-                    OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.sleep_cancel)) }
+                Text(stringResource(R.string.sleep_extend_by), style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(5, 10, 15, 30).forEach { minutes ->
+                        AssistChip(
+                            onClick = { onExtend(minutes) },
+                            label = { Text("+" + stringResource(R.string.minutes_short, minutes)) },
+                        )
+                    }
+                    FilterChip(
+                        selected = customForExtend == true,
+                        onClick = { customForExtend = if (customForExtend == true) null else true },
+                        label = { Text(stringResource(R.string.sleep_custom)) },
+                    )
                 }
+                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.sleep_cancel)) }
             }
             SleepState.EndOfEpisode -> {
                 Text(stringResource(R.string.sleep_end_active), style = MaterialTheme.typography.bodyLarge)
@@ -413,22 +439,80 @@ private fun SleepSheet(
             }
             SleepState.Off -> Unit
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(5, 10, 15, 30, 45, 60, 90).forEach { minutes ->
+
+        if (state !is SleepState.Countdown) {
+            Text(stringResource(R.string.sleep_durations), style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(5, 10, 15, 30, 45, 60, 90).forEach { minutes ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { onStart(minutes) },
+                        label = { Text(stringResource(R.string.minutes_short, minutes)) },
+                    )
+                }
                 FilterChip(
-                    selected = false,
-                    onClick = { onStart(minutes) },
-                    label = { Text(stringResource(R.string.minutes_short, minutes)) },
+                    selected = state == SleepState.EndOfEpisode,
+                    onClick = onEndOfEpisode,
+                    label = { Text(stringResource(R.string.sleep_end_of_episode)) },
+                )
+                FilterChip(
+                    selected = customForExtend == false,
+                    onClick = { customForExtend = if (customForExtend == false) null else false },
+                    label = { Text(stringResource(R.string.sleep_custom)) },
                 )
             }
-            FilterChip(
-                selected = state == SleepState.EndOfEpisode,
-                onClick = onEndOfEpisode,
-                label = { Text(stringResource(R.string.sleep_end_of_episode)) },
+        }
+
+        customForExtend?.let { extend ->
+            DurationPicker(
+                initialMinutes = if (extend) 20 else lastMinutes,
+                confirmLabel = stringResource(if (extend) R.string.sleep_extend else R.string.sleep_start),
+                onConfirm = { minutes ->
+                    customForExtend = null
+                    if (extend) onExtend(minutes) else onStart(minutes)
+                },
             )
         }
     }
 }
+
+/** Scelta di una durata da 1 a 180 minuti, con cursore e pulsanti -/+. */
+@Composable
+private fun DurationPicker(initialMinutes: Int, confirmLabel: String, onConfirm: (Int) -> Unit) {
+    var minutes by remember { mutableIntStateOf(initialMinutes.coerceIn(1, 180)) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            FilledTonalIconButton(onClick = { minutes = (minutes - 1).coerceAtLeast(1) }) {
+                Icon(Icons.Rounded.Remove, null)
+            }
+            Text(
+                formatMinutes(minutes),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(140.dp),
+            )
+            FilledTonalIconButton(onClick = { minutes = (minutes + 1).coerceAtMost(180) }) {
+                Icon(Icons.Rounded.Add, null)
+            }
+        }
+        Slider(
+            value = minutes.toFloat(),
+            onValueChange = { minutes = it.roundToInt().coerceIn(1, 180) },
+            valueRange = 1f..180f,
+        )
+        FilledTonalButton(onClick = { onConfirm(minutes) }) { Text(confirmLabel) }
+    }
+}
+
+private fun formatMinutes(minutes: Int): String =
+    if (minutes >= 60) String.format(Locale.ROOT, "%d h %02d min", minutes / 60, minutes % 60) else "$minutes min"
 
 @Composable
 private fun QueueSheet(

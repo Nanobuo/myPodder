@@ -3,6 +3,7 @@ package com.nanobuo.mypodder.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanobuo.mypodder.data.download.DownloadRepository
+import com.nanobuo.mypodder.data.update.UpdateManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.AppSettings
 import com.nanobuo.mypodder.data.settings.SettingsRepository
@@ -26,7 +27,12 @@ class MainViewModel @Inject constructor(
     private val downloads: DownloadRepository,
     settingsRepository: SettingsRepository,
     val player: PlayerConnection,
+    val updates: UpdateManager,
 ) : ViewModel(), EpisodeActions {
+
+    init {
+        updates.checkIfDue()
+    }
 
     val settings: StateFlow<AppSettings?> = settingsRepository.flow
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)

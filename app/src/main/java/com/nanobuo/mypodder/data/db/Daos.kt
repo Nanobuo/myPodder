@@ -55,7 +55,7 @@ interface EpisodeDao {
     @Query("$EPISODE_ITEM WHERE e.podcastId = :podcastId ORDER BY e.pubDate DESC")
     fun observeForPodcast(podcastId: Long): Flow<List<EpisodeItem>>
 
-    @Query("$EPISODE_ITEM ORDER BY e.pubDate DESC LIMIT :limit")
+    @Query("$EPISODE_ITEM WHERE e.completed = 0 ORDER BY e.pubDate DESC LIMIT :limit")
     fun observeLatest(limit: Int): Flow<List<EpisodeItem>>
 
     @Query("$EPISODE_ITEM WHERE e.downloadState != 0 ORDER BY e.downloadState = 3, e.pubDate DESC")

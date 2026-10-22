@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +58,8 @@ fun EpisodeRow(
     showPodcast: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    /** Mostra più scuri gli episodi già ascoltati. */
+    dimPlayed: Boolean = false,
 ) {
     val ep = item.episode
     val actions = LocalEpisodeActions.current
@@ -68,6 +71,7 @@ fun EpisodeRow(
         modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .alpha(if (dimPlayed && ep.completed) 0.45f else 1f)
             .padding(start = if (leading != null) 4.dp else 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

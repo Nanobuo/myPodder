@@ -138,7 +138,7 @@ fun PodcastScreen(
                     HorizontalDivider()
                 }
                 items(list, key = { it.episode.id }) { item ->
-                    EpisodeRow(item, onClick = { onEpisode(item.episode.id) }, showPodcast = false)
+                    EpisodeRow(item, onClick = { onEpisode(item.episode.id) }, showPodcast = false, dimPlayed = true)
                 }
             }
         }

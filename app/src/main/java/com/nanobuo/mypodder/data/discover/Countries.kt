@@ -31,10 +31,16 @@ object Countries {
             ?: Locale.getDefault().language
     }
 
+    /** Paesi principali per i podcast (classifiche Apple disponibili e cataloghi ampi). */
+    private val main = listOf(
+        "IT", "US", "GB", "IE", "CA", "AU", "NZ", "IN", "FR", "BE", "CH", "DE", "AT", "ES", "PT",
+        "MX", "AR", "CO", "CL", "BR", "NL", "SE", "NO", "DK", "FI", "PL", "JP", "KR",
+    )
+
+    /** Paesi proposti nel selettore, più quello del dispositivo se non è tra i principali. */
     fun all(displayLocale: Locale = Locale.getDefault()): List<Country> =
-        Locale.getISOCountries()
+        (main + default()).distinct()
             .map { Country(it, Locale.Builder().setRegion(it).build().getDisplayCountry(displayLocale)) }
-            .filter { it.name.isNotBlank() && it.name != it.code }
             .sortedBy { it.name.lowercase(displayLocale) }
 
     fun of(code: String): Country =

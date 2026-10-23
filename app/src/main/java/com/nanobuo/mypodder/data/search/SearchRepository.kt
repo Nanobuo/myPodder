@@ -70,11 +70,17 @@ class SearchRepository @Inject constructor(
     suspend fun byCategory(category: String, country: String, language: String, max: Int): List<SearchResult> =
         if (usesPodcastIndex) trending(language, listOf(category), max) else itunesSearch(category, country, max)
 
-    /** I podcast più ascoltati in un paese secondo le classifiche di Apple Podcasts. */
-    suspend fun topCharts(country: String, limit: Int = 10): List<SearchResult> = withContext(Dispatchers.IO) {
+    /**
+     * I podcast più ascoltati in un paese secondo le classifiche di Apple Podcasts, in generale
+     * o per un genere ([genreId] di Apple, es. 1318 = Tecnologia).
+     */
+    suspend fun topCharts(country: String, limit: Int = 10, genreId: Int? = null): List<SearchResult> = withContext(Dispatchers.IO) {
         val cc = country.lowercase()
-        val ids = runCatching { chartIdsV2(cc, limit) }.getOrNull()?.takeIf { it.isNotEmpty() }
-            ?: chartIdsLegacy(cc, limit)
+        val ids = if (genreId != null) {
+            chartIdsLegacy(cc, limit, genreId)
+        } else {
+            runCatching { chartIdsV2(cc, limit) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: chartIdsLegacy(cc, limit)
+        }
         if (ids.isEmpty()) return@withContext emptyList()
         // La classifica non contiene l'URL del feed: lo ricava la lookup di iTunes.
         val url = "https://itunes.apple.com/lookup".toHttpUrl().newBuilder()
@@ -93,8 +99,9 @@ class SearchRepository @Inject constructor(
         return json.decodeFromString<ChartV2>(body).feed.results.map { it.id }
     }
 
-    private fun chartIdsLegacy(cc: String, limit: Int): List<String> {
-        val body = get(Request.Builder().url("https://itunes.apple.com/$cc/rss/toppodcasts/limit=$limit/json").build())
+    private fun chartIdsLegacy(cc: String, limit: Int, genreId: Int? = null): List<String> {
+        val genre = genreId?.let { "genre=$it/" }.orEmpty()
+        val body = get(Request.Builder().url("https://itunes.apple.com/$cc/rss/toppodcasts/limit=$limit/${genre}json").build())
         return json.decodeFromString<ChartLegacy>(body).feed.entry.mapNotNull { it.id.attributes?.id }
     }
 

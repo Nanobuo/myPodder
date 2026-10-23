@@ -75,6 +75,24 @@ class PodcastRepository @Inject constructor(
         }
     }
 
+    /** Legge dal feed le categorie dei podcast che non le hanno ancora (max 4 feed in parallelo). */
+    suspend fun fillMissingCategories() = coroutineScope {
+        val missing = podcastDao.getAll().filter { it.categories == null }
+        if (missing.isEmpty()) return@coroutineScope
+        val gate = Semaphore(4)
+        missing.map { p ->
+            async {
+                gate.withPermit {
+                    runCatching {
+                        val categories = fetchFeed(p.feedUrl).categories
+                        // "" segna i feed senza categorie, per non rileggerli ogni volta.
+                        podcastDao.setCategories(p.id, categories.joinToString("|").ifEmpty { "" })
+                    }
+                }
+            }
+        }.awaitAll()
+    }
+
     suspend fun unsubscribe(podcastId: Long) {
         downloads.deleteForPodcast(podcastId)
         podcastDao.delete(podcastId)

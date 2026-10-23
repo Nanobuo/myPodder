@@ -43,6 +43,9 @@ interface PodcastDao {
     @Update
     suspend fun update(podcast: Podcast)
 
+    @Query("UPDATE podcasts SET categories = :categories WHERE id = :id")
+    suspend fun setCategories(id: Long, categories: String)
+
     @Query("UPDATE podcasts SET autoDownload = :enabled WHERE id = :id")
     suspend fun setAutoDownload(id: Long, enabled: Boolean)
 

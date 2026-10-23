@@ -8,6 +8,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import com.nanobuo.mypodder.data.discover.DiscoverStore
 import com.nanobuo.mypodder.data.settings.SettingsRepository
 import com.nanobuo.mypodder.work.RefreshScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -25,12 +26,15 @@ class App : Application(), Configuration.Provider, SingletonImageLoader.Factory 
     @Inject lateinit var settings: SettingsRepository
     @Inject lateinit var refreshScheduler: RefreshScheduler
     @Inject lateinit var appScope: CoroutineScope
+    @Inject lateinit var discoverStore: DiscoverStore
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
+        // Consigliati e classifiche pronti prima di aprire la scheda Cerca.
+        discoverStore.start()
         appScope.launch {
             settings.flow.map { it.refreshHours }.distinctUntilChanged().collect { refreshScheduler.schedule(it) }
         }

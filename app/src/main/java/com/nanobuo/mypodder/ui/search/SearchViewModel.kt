@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.nanobuo.mypodder.data.discover.Countries
-import com.nanobuo.mypodder.data.discover.DiscoverRepository
+import com.nanobuo.mypodder.data.discover.DiscoverStore
 import com.nanobuo.mypodder.data.feed.ParsedFeed
 import com.nanobuo.mypodder.data.repo.PodcastRepository
 import com.nanobuo.mypodder.data.search.SearchRepository
@@ -33,35 +33,21 @@ sealed interface SearchState {
     data object Error : SearchState
 }
 
-/** Contenuti della scheda Cerca quando non si sta cercando nulla. */
-data class DiscoverContent(
-    val suggestions: List<SearchResult> = emptyList(),
-    val topCharts: List<SearchResult> = emptyList(),
-    val trending: List<SearchResult> = emptyList(),
-    val loading: Boolean = true,
-)
-
-/** Ciò da cui dipendono i suggerimenti: se cambia, vanno ricaricati. */
-private data class DiscoverKey(val country: String, val showCharts: Boolean, val interests: Set<String>, val subscriptions: Int)
-
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val search: SearchRepository,
-    private val discover: DiscoverRepository,
+    private val store: DiscoverStore,
     private val settings: SettingsRepository,
-    podcasts: PodcastRepository,
 ) : ViewModel() {
-    private val subscriptionCount = podcasts.podcasts.map { it.size }.distinctUntilChanged()
-
     private val _query = MutableStateFlow("")
     val query = _query.asStateFlow()
 
     private val _state = MutableStateFlow<SearchState>(SearchState.Idle)
     val state = _state.asStateFlow()
 
-    private val _discover = MutableStateFlow(DiscoverContent())
-    val discoverContent = _discover.asStateFlow()
+    /** Consigliati, classifica e tendenze, preparati in anticipo dal [DiscoverStore]. */
+    val discoverContent = store.content
 
     val usesPodcastIndex = search.usesPodcastIndex
 
@@ -73,14 +59,7 @@ class SearchViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     init {
-        // Contenuti di scoperta: ricaricati quando cambiano paese, classifica attiva o interessi.
-        viewModelScope.launch {
-            combine(settings.flow, subscriptionCount) { s, count ->
-                DiscoverKey(s.searchCountry.ifBlank { Countries.default() }, s.showTopCharts, s.interests, count)
-            }
-                .distinctUntilChanged()
-                .collect { loadDiscover(it.country, it.showCharts, it.interests) }
-        }
+        store.start()
         viewModelScope.launch {
             combine(_query.debounce(500).map { it.trim() }, country) { q, cc -> q to cc }
                 .distinctUntilChanged()
@@ -94,15 +73,6 @@ class SearchViewModel @Inject constructor(
                         .fold(onSuccess = { SearchState.Results(it) }, onFailure = { SearchState.Error })
                 }
         }
-    }
-
-    private suspend fun loadDiscover(country: String, showCharts: Boolean, interests: Set<String>) {
-        _discover.value = _discover.value.copy(loading = true)
-        val language = Countries.languageOf(country)
-        val suggestions = runCatching { discover.suggestions(interests, country) }.getOrDefault(emptyList())
-        val charts = if (showCharts) runCatching { search.topCharts(country) }.getOrDefault(emptyList()) else emptyList()
-        val trending = runCatching { search.trending(language) }.getOrDefault(emptyList())
-        _discover.value = DiscoverContent(suggestions, charts, trending, loading = false)
     }
 
     fun setQuery(value: String) {

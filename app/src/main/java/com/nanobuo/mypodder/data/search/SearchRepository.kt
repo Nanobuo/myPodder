@@ -14,6 +14,7 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Serializable
 data class SearchResult(
     val title: String,
     val author: String?,

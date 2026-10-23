@@ -59,6 +59,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nanobuo.mypodder.R
 import com.nanobuo.mypodder.data.discover.Countries
+import com.nanobuo.mypodder.data.discover.DiscoverContent
 import com.nanobuo.mypodder.data.search.SearchResult
 import com.nanobuo.mypodder.ui.components.Artwork
 import com.nanobuo.mypodder.ui.components.EmptyState

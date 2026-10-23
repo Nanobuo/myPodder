@@ -15,6 +15,8 @@ data class Podcast(
     val description: String? = null,
     val imageUrl: String? = null,
     val link: String? = null,
+    /** Categorie iTunes separate da "|". */
+    val categories: String? = null,
     val autoDownload: Boolean = false,
     val subscribedAt: Long = System.currentTimeMillis(),
     val lastRefreshed: Long = 0,

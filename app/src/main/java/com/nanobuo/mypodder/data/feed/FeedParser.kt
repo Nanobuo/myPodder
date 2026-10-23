@@ -30,6 +30,8 @@ data class ParsedFeed(
     val imageUrl: String?,
     val link: String?,
     val episodes: List<ParsedEpisode>,
+    /** Categorie iTunes principali (es. "Technology", "Society & Culture"). */
+    val categories: List<String> = emptyList(),
 )
 
 class FeedParseException(message: String) : Exception(message)
@@ -98,6 +100,8 @@ object FeedParser {
         // Profondità dentro elementi da ignorare per i campi del canale (es. <image>, <itunes:owner>).
         var nestedDepth = 0
         var inImage = false
+        val categories = mutableListOf<String>()
+        var categoryDepth = 0
 
         var event = parser.eventType
         while (event != XmlPullParser.END_DOCUMENT) {
@@ -111,6 +115,11 @@ object FeedParser {
                     cur != null -> handleItemTag(parser, ns, name, cur)
                     ns.isEmpty() && name == "image" -> inImage = true
                     inImage && ns.isEmpty() && name == "url" -> rssImage = parser.textOrNull()
+                    ns == NS_ITUNES && name == "category" -> {
+                        // Solo le categorie di primo livello, non le sottocategorie annidate.
+                        if (categoryDepth == 0) parser.getAttributeValue(null, "text")?.trim()?.takeIf { it.isNotEmpty() }?.let { categories += it }
+                        categoryDepth++
+                    }
                     nestedDepth > 0 -> Unit
                     ns.isEmpty() && name == "title" -> title = parser.textOrNull()
                     ns.isEmpty() && name == "description" -> description = parser.textOrNull()
@@ -119,7 +128,6 @@ object FeedParser {
                     ns == NS_ITUNES && name == "summary" -> summary = parser.textOrNull()
                     ns == NS_ITUNES && name == "image" -> itunesImage = parser.getAttributeValue(null, "href")
                     ns == NS_ITUNES && name == "owner" -> nestedDepth++
-                    ns == NS_ITUNES && name == "category" -> Unit
                 }
             } else if (event == XmlPullParser.END_TAG) {
                 val ns = parser.namespace.orEmpty()
@@ -131,6 +139,7 @@ object FeedParser {
                     }
                     ns.isEmpty() && name == "image" && item == null -> inImage = false
                     ns == NS_ITUNES && name == "owner" -> nestedDepth--
+                    ns == NS_ITUNES && name == "category" && item == null -> categoryDepth = (categoryDepth - 1).coerceAtLeast(0)
                 }
             }
             event = parser.next()
@@ -142,6 +151,7 @@ object FeedParser {
             author = author?.trim(),
             description = listOfNotNull(description, summary).maxByOrNull { it.length },
             imageUrl = itunesImage ?: rssImage,
+            categories = categories.distinct(),
             link = link,
             episodes = episodes,
         )

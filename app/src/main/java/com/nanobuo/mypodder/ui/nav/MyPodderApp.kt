@@ -69,6 +69,7 @@ import com.nanobuo.mypodder.ui.components.PlaybackHighlight
 import com.nanobuo.mypodder.ui.downloads.DownloadsScreen
 import com.nanobuo.mypodder.ui.episode.EpisodeScreen
 import com.nanobuo.mypodder.ui.history.HistoryScreen
+import com.nanobuo.mypodder.ui.onboarding.OnboardingScreen
 import com.nanobuo.mypodder.ui.library.LibraryScreen
 import com.nanobuo.mypodder.ui.player.MiniPlayer
 import com.nanobuo.mypodder.ui.player.PlayerScreen
@@ -128,6 +129,12 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                 launchSingleTop = true
             }
             openLatestRequests++
+        }
+    }
+    val needsOnboarding by viewModel.needsOnboarding.collectAsStateWithLifecycle()
+    LaunchedEffect(needsOnboarding) {
+        if (needsOnboarding && nav.currentDestination?.hasRoute(OnboardingRoute::class) != true) {
+            nav.navigate(OnboardingRoute) { launchSingleTop = true }
         }
     }
     val updateState by viewModel.updates.state.collectAsStateWithLifecycle()
@@ -237,6 +244,14 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
                         onSettings = { nav.navigate(SettingsRoute) },
                         onHistory = { nav.navigate(HistoryRoute) },
                     )
+                }
+                composable<OnboardingRoute> {
+                    OnboardingScreen(onDone = {
+                        nav.navigate(LibraryRoute) {
+                            popUpTo(nav.graph.findStartDestination().id) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    })
                 }
                 composable<HistoryRoute> {
                     HistoryScreen(

@@ -66,6 +66,7 @@ class PodcastRepository @Inject constructor(
                     description = feed.description,
                     imageUrl = feed.imageUrl,
                     link = feed.link,
+                    categories = feed.categories.joinToString("|").ifEmpty { null },
                     lastRefreshed = System.currentTimeMillis(),
                 )
             )
@@ -95,6 +96,7 @@ class PodcastRepository @Inject constructor(
                     description = feed.description ?: podcast.description,
                     imageUrl = feed.imageUrl ?: podcast.imageUrl,
                     link = feed.link ?: podcast.link,
+                    categories = feed.categories.joinToString("|").ifEmpty { podcast.categories },
                     lastRefreshed = System.currentTimeMillis(),
                 )
             )

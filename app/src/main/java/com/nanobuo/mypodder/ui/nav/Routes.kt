@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object SettingsRoute
 @Serializable data object PlayerRoute
 @Serializable data object HistoryRoute
+@Serializable data object OnboardingRoute
 @Serializable data class PodcastRoute(val id: Long)
 @Serializable data class EpisodeRoute(val id: Long)
 @Serializable data class PreviewRoute(val feedUrl: String, val title: String? = null, val imageUrl: String? = null)

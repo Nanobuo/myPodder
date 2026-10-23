@@ -7,6 +7,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +47,11 @@ data class AppSettings(
     val coverColors: Boolean = false,
     val autoCheckUpdates: Boolean = true,
     val lastUpdateCheck: Long = 0,
+    /** Paese per ricerca e classifiche (codice ISO); vuoto = automatico. */
+    val searchCountry: String = "",
+    val showTopCharts: Boolean = true,
+    val onboardingDone: Boolean = false,
+    val interests: Set<String> = emptySet(),
 )
 
 @Singleton
@@ -72,6 +79,10 @@ class SettingsRepository @Inject constructor(
         val coverColors = booleanPreferencesKey("cover_colors")
         val autoCheckUpdates = booleanPreferencesKey("auto_check_updates")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val searchCountry = stringPreferencesKey("search_country")
+        val showTopCharts = booleanPreferencesKey("show_top_charts")
+        val onboardingDone = booleanPreferencesKey("onboarding_done")
+        val interests = stringSetPreferencesKey("interests")
     }
 
     private val defaults = AppSettings()
@@ -95,6 +106,10 @@ class SettingsRepository @Inject constructor(
             coverColors = p[Keys.coverColors] ?: defaults.coverColors,
             autoCheckUpdates = p[Keys.autoCheckUpdates] ?: defaults.autoCheckUpdates,
             lastUpdateCheck = p[Keys.lastUpdateCheck] ?: defaults.lastUpdateCheck,
+            searchCountry = p[Keys.searchCountry] ?: defaults.searchCountry,
+            showTopCharts = p[Keys.showTopCharts] ?: defaults.showTopCharts,
+            onboardingDone = p[Keys.onboardingDone] ?: defaults.onboardingDone,
+            interests = p[Keys.interests] ?: defaults.interests,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -129,4 +144,8 @@ class SettingsRepository @Inject constructor(
     suspend fun setCoverColors(v: Boolean) = set(Keys.coverColors, v)
     suspend fun setAutoCheckUpdates(v: Boolean) = set(Keys.autoCheckUpdates, v)
     suspend fun setLastUpdateCheck(v: Long) = set(Keys.lastUpdateCheck, v)
+    suspend fun setSearchCountry(v: String) = set(Keys.searchCountry, v)
+    suspend fun setShowTopCharts(v: Boolean) = set(Keys.showTopCharts, v)
+    suspend fun setOnboardingDone(v: Boolean) = set(Keys.onboardingDone, v)
+    suspend fun setInterests(v: Set<String>) = set(Keys.interests, v)
 }

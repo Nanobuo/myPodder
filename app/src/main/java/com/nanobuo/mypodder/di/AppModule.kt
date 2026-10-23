@@ -30,7 +30,9 @@ object AppModule {
     @Provides
     @Singleton
     fun database(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, "mypodder.db").build()
+        Room.databaseBuilder(context, AppDatabase::class.java, "mypodder.db")
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides
     @Singleton

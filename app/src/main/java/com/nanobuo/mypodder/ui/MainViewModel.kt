@@ -11,6 +11,9 @@ import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.ui.components.EpisodeActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import com.nanobuo.mypodder.data.repo.PodcastRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
@@ -26,10 +29,17 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val episodes: EpisodeRepository,
     private val downloads: DownloadRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     val player: PlayerConnection,
     val updates: UpdateManager,
+    podcasts: PodcastRepository,
 ) : ViewModel(), EpisodeActions {
+
+    /** true se va mostrato il benvenuto con la scelta degli argomenti. */
+    val needsOnboarding: StateFlow<Boolean> = combine(settingsRepository.flow, podcasts.podcasts) { s, list ->
+        !s.onboardingDone && list.isEmpty()
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
 
     /** Nuovi episodi da segnalare all'apertura dell'app (una volta per avvio). */
     private val _newEpisodesAtStart = MutableStateFlow<Int?>(null)
@@ -37,6 +47,11 @@ class MainViewModel @Inject constructor(
 
     init {
         updates.checkIfDue()
+        // Chi aveva già delle iscrizioni prima di questa versione non vede il benvenuto.
+        viewModelScope.launch {
+            val s = settingsRepository.current()
+            if (!s.onboardingDone && podcasts.podcasts.first().isNotEmpty()) settingsRepository.setOnboardingDone(true)
+        }
         viewModelScope.launch {
             val count = episodes.countNew()
             if (count > 0) _newEpisodesAtStart.value = count

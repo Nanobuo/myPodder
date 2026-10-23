@@ -212,6 +212,13 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 modifier = Modifier.clickable { opml.export() },
             )
 
+            Section(stringResource(R.string.search_settings))
+            SwitchRow(
+                stringResource(R.string.show_top_charts),
+                stringResource(R.string.show_top_charts_summary),
+                s.showTopCharts,
+            ) { v -> viewModel.update { setShowTopCharts(v) } }
+
             Section(stringResource(R.string.settings_about))
             ListItem(
                 headlineContent = { Text(stringResource(R.string.app_name)) },

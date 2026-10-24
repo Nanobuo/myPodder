@@ -32,7 +32,7 @@ class MainViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     val player: PlayerConnection,
     val updates: UpdateManager,
-    podcasts: PodcastRepository,
+    private val podcasts: PodcastRepository,
 ) : ViewModel(), EpisodeActions {
 
     /** true se va mostrato il benvenuto con la scelta degli argomenti. */
@@ -52,9 +52,32 @@ class MainViewModel @Inject constructor(
             val s = settingsRepository.current()
             if (!s.onboardingDone && podcasts.podcasts.first().isNotEmpty()) settingsRepository.setOnboardingDone(true)
         }
+    }
+
+    private var lastNewEpisodesPopup = 0L
+    private var checkingNewEpisodes = false
+
+    /**
+     * Chiamato ogni volta che l'app torna in primo piano: se i feed non sono recenti li aggiorna,
+     * poi segnala quanti episodi nuovi ci sono (al massimo una volta ogni 30 minuti).
+     */
+    fun onForeground() {
+        val now = System.currentTimeMillis()
+        if (checkingNewEpisodes || now - lastNewEpisodesPopup < POPUP_INTERVAL_MS) return
+        checkingNewEpisodes = true
         viewModelScope.launch {
-            val count = episodes.countNew()
-            if (count > 0) _newEpisodesAtStart.value = count
+            try {
+                if (now - settingsRepository.current().lastFullRefresh > REFRESH_INTERVAL_MS) {
+                    runCatching { podcasts.refreshAll() }
+                }
+                val count = episodes.countNew()
+                if (count > 0) {
+                    lastNewEpisodesPopup = System.currentTimeMillis()
+                    _newEpisodesAtStart.value = count
+                }
+            } finally {
+                checkingNewEpisodes = false
+            }
         }
     }
 
@@ -97,5 +120,10 @@ class MainViewModel @Inject constructor(
     }
     override fun setPlayed(episodeId: Long, played: Boolean) {
         viewModelScope.launch { episodes.setCompleted(episodeId, played) }
+    }
+
+    private companion object {
+        const val POPUP_INTERVAL_MS = 30 * 60 * 1000L
+        const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
     }
 }

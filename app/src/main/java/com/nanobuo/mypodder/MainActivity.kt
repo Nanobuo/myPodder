@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         viewModel.player.connect()
+        viewModel.onForeground()
     }
 
     override fun onStop() {

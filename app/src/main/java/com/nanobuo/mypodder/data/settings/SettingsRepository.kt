@@ -52,6 +52,8 @@ data class AppSettings(
     val showTopCharts: Boolean = true,
     val onboardingDone: Boolean = false,
     val interests: Set<String> = emptySet(),
+    /** Ultimo aggiornamento completo dei feed (manuale, automatico o all'apertura). */
+    val lastFullRefresh: Long = 0,
 )
 
 @Singleton
@@ -83,6 +85,7 @@ class SettingsRepository @Inject constructor(
         val showTopCharts = booleanPreferencesKey("show_top_charts")
         val onboardingDone = booleanPreferencesKey("onboarding_done")
         val interests = stringSetPreferencesKey("interests")
+        val lastFullRefresh = longPreferencesKey("last_full_refresh")
     }
 
     private val defaults = AppSettings()
@@ -110,6 +113,7 @@ class SettingsRepository @Inject constructor(
             showTopCharts = p[Keys.showTopCharts] ?: defaults.showTopCharts,
             onboardingDone = p[Keys.onboardingDone] ?: defaults.onboardingDone,
             interests = p[Keys.interests] ?: defaults.interests,
+            lastFullRefresh = p[Keys.lastFullRefresh] ?: defaults.lastFullRefresh,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -148,4 +152,5 @@ class SettingsRepository @Inject constructor(
     suspend fun setShowTopCharts(v: Boolean) = set(Keys.showTopCharts, v)
     suspend fun setOnboardingDone(v: Boolean) = set(Keys.onboardingDone, v)
     suspend fun setInterests(v: Set<String>) = set(Keys.interests, v)
+    suspend fun setLastFullRefresh(v: Long) = set(Keys.lastFullRefresh, v)
 }

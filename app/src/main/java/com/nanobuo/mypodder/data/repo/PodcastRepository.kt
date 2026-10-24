@@ -138,9 +138,11 @@ class PodcastRepository @Inject constructor(
     /** Aggiorna tutti i podcast (max 4 in parallelo); restituisce i nuovi episodi trovati. */
     suspend fun refreshAll(): Int = coroutineScope {
         val gate = Semaphore(4)
-        podcastDao.getAll().map { p ->
+        val found = podcastDao.getAll().map { p ->
             async { gate.withPermit { runCatching { refresh(p.id) }.getOrDefault(0) } }
         }.awaitAll().sum()
+        settings.setLastFullRefresh(System.currentTimeMillis())
+        found
     }
 
     /** Inserisce gli episodi e restituisce gli id dei nuovi, dal più recente. */

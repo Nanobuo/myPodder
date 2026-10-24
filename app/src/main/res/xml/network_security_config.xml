@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Molti feed di podcast indicano ancora file audio e immagini con indirizzi http:// (spesso
+  tramite servizi di statistiche come Podtrac): senza questo permesso Android li blocca e gli
+  episodi non partono.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

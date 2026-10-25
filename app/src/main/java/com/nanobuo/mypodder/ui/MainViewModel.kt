@@ -54,27 +54,27 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private var lastNewEpisodesPopup = 0L
     private var checkingNewEpisodes = false
 
     /**
-     * Chiamato ogni volta che l'app torna in primo piano: se i feed non sono recenti li aggiorna,
-     * poi segnala quanti episodi nuovi ci sono (al massimo una volta ogni 30 minuti).
+     * Chiamato ogni volta che l'app torna in primo piano: aggiorna i feed se non sono recenti e
+     * segnala quanti episodi sono usciti dall'ultima apertura dell'app.
      */
     fun onForeground() {
-        val now = System.currentTimeMillis()
-        if (checkingNewEpisodes || now - lastNewEpisodesPopup < POPUP_INTERVAL_MS) return
+        if (checkingNewEpisodes) return
         checkingNewEpisodes = true
         viewModelScope.launch {
             try {
-                if (now - settingsRepository.current().lastFullRefresh > REFRESH_INTERVAL_MS) {
+                val now = System.currentTimeMillis()
+                val s = settingsRepository.current()
+                // Prima apertura con questa funzione: considera le ultime 24 ore.
+                val since = s.lastVisit.takeIf { it > 0 } ?: (now - DAY_MS)
+                if (now - s.lastFullRefresh > REFRESH_INTERVAL_MS) {
                     runCatching { podcasts.refreshAll() }
                 }
-                val count = episodes.countNew()
-                if (count > 0) {
-                    lastNewEpisodesPopup = System.currentTimeMillis()
-                    _newEpisodesAtStart.value = count
-                }
+                val count = episodes.countPublishedSince(since)
+                settingsRepository.setLastVisit(now)
+                if (count > 0) _newEpisodesAtStart.value = count
             } finally {
                 checkingNewEpisodes = false
             }
@@ -123,7 +123,7 @@ class MainViewModel @Inject constructor(
     }
 
     private companion object {
-        const val POPUP_INTERVAL_MS = 30 * 60 * 1000L
+        const val DAY_MS = 24 * 60 * 60 * 1000L
         const val REFRESH_INTERVAL_MS = 15 * 60 * 1000L
     }
 }

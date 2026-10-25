@@ -168,6 +168,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             ) { v -> viewModel.update { setShakeToExtend(v) } }
 
             Section(stringResource(R.string.settings_downloads))
+            DownloadLocationRow(s.downloadTreeUri) { uri -> viewModel.update { setDownloadTreeUri(uri) } }
             SwitchRow(stringResource(R.string.wifi_only), stringResource(R.string.wifi_only_summary), s.wifiOnly) { v ->
                 viewModel.update { setWifiOnly(v) }
             }

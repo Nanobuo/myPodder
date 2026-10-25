@@ -84,7 +84,17 @@ class DownloadWorker @AssistedInject constructor(
                     part.delete()
                 }
             }
-            episodeDao.setDownloaded(id, target.absolutePath, target.length())
+            // Con la microSD scelta il file finisce nella cartella "podcasts" della scheda;
+            // se la scheda non è disponibile resta nella memoria del telefono.
+            val moved = withContext(Dispatchers.IO) {
+                val title = episodeDao.getItem(id)?.podcastTitle.orEmpty()
+                downloads.moveToSd(target, title, episode.mimeType)
+            }
+            if (moved != null) {
+                episodeDao.setDownloaded(id, moved.first, moved.second)
+            } else {
+                episodeDao.setDownloaded(id, target.absolutePath, target.length())
+            }
             Result.success()
         } catch (e: CancellationException) {
             throw e

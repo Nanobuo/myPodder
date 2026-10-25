@@ -1,6 +1,10 @@
 package com.nanobuo.mypodder.ui.library
 
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.HorizontalPager
 import com.nanobuo.mypodder.ui.nav.OnTabReselected
 import com.nanobuo.mypodder.ui.nav.LibraryRoute
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -206,9 +210,22 @@ fun LibraryScreen(
                     }
                 }
                 else -> {
-                    PrimaryTabRow(selectedTabIndex = tab) {
-                        Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(stringResource(R.string.tab_podcasts)) })
-                        Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(stringResource(R.string.tab_episodes)) })
+                    // Le due schede si cambiano anche scorrendo con il dito.
+                    val pager = rememberPagerState(initialPage = tab) { 2 }
+                    val pagerScope = rememberCoroutineScope()
+                    LaunchedEffect(pager.currentPage) { tab = pager.currentPage }
+                    LaunchedEffect(tab) { if (pager.currentPage != tab) pager.animateScrollToPage(tab) }
+                    PrimaryTabRow(selectedTabIndex = pager.currentPage) {
+                        Tab(
+                            selected = pager.currentPage == 0,
+                            onClick = { pagerScope.launch { pager.animateScrollToPage(0) } },
+                            text = { Text(stringResource(R.string.tab_podcasts)) },
+                        )
+                        Tab(
+                            selected = pager.currentPage == 1,
+                            onClick = { pagerScope.launch { pager.animateScrollToPage(1) } },
+                            text = { Text(stringResource(R.string.tab_episodes)) },
+                        )
                     }
                     // Trascinando la lista verso il basso si aggiornano tutti i feed.
                     val pullState = rememberPullToRefreshState()
@@ -225,10 +242,12 @@ fun LibraryScreen(
                             )
                         },
                     ) {
-                        when {
-                            tab == 1 -> LatestEpisodes(latest, onEpisode)
-                            grid -> PodcastGrid(list, badgeStyle, onPodcast)
-                            else -> PodcastList(list, badgeStyle, onPodcast)
+                        HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+                            when {
+                                page == 1 -> LatestEpisodes(latest, onEpisode)
+                                grid -> PodcastGrid(list, badgeStyle, onPodcast)
+                                else -> PodcastList(list, badgeStyle, onPodcast)
+                            }
                         }
                     }
                 }

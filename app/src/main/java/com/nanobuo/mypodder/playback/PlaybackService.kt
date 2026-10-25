@@ -31,6 +31,7 @@ import com.nanobuo.mypodder.data.chapters.ChapterRepository
 import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.db.Chapter
 import com.nanobuo.mypodder.data.db.EpisodeItem
+import com.nanobuo.mypodder.data.download.LocalMedia
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -237,7 +238,7 @@ class PlaybackService : MediaSessionService() {
 
     private fun buildItem(item: EpisodeItem): MediaItem {
         val ep = item.episode
-        val uri: Uri = ep.localPath?.let(::File)?.takeIf { it.exists() }?.let(Uri::fromFile) ?: ep.audioUrl.toUri()
+        val uri: Uri = ep.localPath?.takeIf { LocalMedia.exists(this, it) }?.let(LocalMedia::uri) ?: ep.audioUrl.toUri()
         return MediaItem.Builder()
             .setMediaId(ep.id.toString())
             .setUri(uri)

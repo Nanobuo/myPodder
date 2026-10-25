@@ -4,6 +4,7 @@ import android.content.Context
 import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.db.Chapter
 import com.nanobuo.mypodder.data.db.Episode
+import com.nanobuo.mypodder.data.download.LocalMedia
 import com.nanobuo.mypodder.data.feed.ParsedChapter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -70,9 +71,9 @@ class ChapterRepository @Inject constructor(
     private fun ParsedChapter.toChapter(episodeId: Long) = Chapter(episodeId, startMs, title, imageUrl, url)
 
     private fun loadId3(episode: Episode): List<Chapter> {
-        val local = episode.localPath?.let(::File)?.takeIf { it.exists() }
+        val local = episode.localPath?.takeIf { LocalMedia.exists(context, it) }
         val tag = if (local != null) {
-            local.inputStream().use(::readTag)
+            LocalMedia.open(context, local)?.use(::readTag)
         } else {
             // Legge solo l'inizio del file remoto, fino alla fine del tag ID3.
             val request = Request.Builder().url(episode.audioUrl).header("Range", "bytes=0-").build()

@@ -124,6 +124,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.reorderable)
     implementation(libs.materialkolor)
+    implementation(libs.documentfile)
 
     testImplementation(libs.junit)
 }

@@ -54,6 +54,10 @@ data class AppSettings(
     val interests: Set<String> = emptySet(),
     /** Ultimo aggiornamento completo dei feed (manuale, automatico o all'apertura). */
     val lastFullRefresh: Long = 0,
+    /** Ultima volta che l'app è stata aperta: base per contare gli episodi usciti nel frattempo. */
+    val lastVisit: Long = 0,
+    /** Cartella scelta sulla microSD (URI dell'albero); vuoto = memoria del telefono. */
+    val downloadTreeUri: String = "",
 )
 
 @Singleton
@@ -86,6 +90,8 @@ class SettingsRepository @Inject constructor(
         val onboardingDone = booleanPreferencesKey("onboarding_done")
         val interests = stringSetPreferencesKey("interests")
         val lastFullRefresh = longPreferencesKey("last_full_refresh")
+        val lastVisit = longPreferencesKey("last_visit")
+        val downloadTreeUri = stringPreferencesKey("download_tree_uri")
     }
 
     private val defaults = AppSettings()
@@ -114,6 +120,8 @@ class SettingsRepository @Inject constructor(
             onboardingDone = p[Keys.onboardingDone] ?: defaults.onboardingDone,
             interests = p[Keys.interests] ?: defaults.interests,
             lastFullRefresh = p[Keys.lastFullRefresh] ?: defaults.lastFullRefresh,
+            lastVisit = p[Keys.lastVisit] ?: defaults.lastVisit,
+            downloadTreeUri = p[Keys.downloadTreeUri] ?: defaults.downloadTreeUri,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -153,4 +161,6 @@ class SettingsRepository @Inject constructor(
     suspend fun setOnboardingDone(v: Boolean) = set(Keys.onboardingDone, v)
     suspend fun setInterests(v: Set<String>) = set(Keys.interests, v)
     suspend fun setLastFullRefresh(v: Long) = set(Keys.lastFullRefresh, v)
+    suspend fun setLastVisit(v: Long) = set(Keys.lastVisit, v)
+    suspend fun setDownloadTreeUri(v: String) = set(Keys.downloadTreeUri, v)
 }

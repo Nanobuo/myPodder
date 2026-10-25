@@ -1,6 +1,8 @@
 package com.nanobuo.mypodder.data.download
 
 import android.content.Context
+import androidx.documentfile.provider.DocumentFile
+import android.net.Uri
 import android.os.Environment
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -34,7 +36,42 @@ class DownloadRepository @Inject constructor(
         get() = (context.getExternalFilesDir(Environment.DIRECTORY_PODCASTS) ?: File(context.filesDir, "podcasts"))
             .also { it.mkdirs() }
 
-    fun freeSpace(): Long = directory.usableSpace
+    /** Spazio libero dove finiscono i download: microSD se scelta, altrimenti telefono. */
+    fun freeSpace(): Long {
+        val sd = settings.state.value.downloadTreeUri.isNotBlank()
+        return (if (sd) removableAppDir(context) else null)?.usableSpace ?: directory.usableSpace
+    }
+
+    /**
+     * Cartella "podcasts" sulla microSD (dentro quella scelta dall'utente, o la stessa se si chiama
+     * già così), creata se manca. Null se non è stata scelta o non è più accessibile.
+     */
+    fun sdPodcastsFolder(): DocumentFile? {
+        val tree = settings.state.value.downloadTreeUri.takeIf { it.isNotBlank() } ?: return null
+        val root = runCatching { DocumentFile.fromTreeUri(context, Uri.parse(tree)) }.getOrNull() ?: return null
+        if (!root.canWrite()) return null
+        if (root.name.equals(SD_FOLDER, ignoreCase = true)) return root
+        return root.findFile(SD_FOLDER)?.takeIf { it.isDirectory } ?: root.createDirectory(SD_FOLDER)
+    }
+
+    /** Sposta un file scaricato nella cartella della microSD; restituisce l'URI o null se non riesce. */
+    fun moveToSd(file: File, podcastTitle: String, mimeType: String?): Pair<String, Long>? {
+        val podcasts = sdPodcastsFolder() ?: return null
+        val folderName = podcastTitle.replace(Regex("[\\\\/:*?\"<>|]"), " ").trim().take(80).ifEmpty { "podcast" }
+        val folder = podcasts.findFile(folderName)?.takeIf { it.isDirectory } ?: podcasts.createDirectory(folderName) ?: return null
+        folder.findFile(file.name)?.delete()
+        val doc = folder.createFile(mimeType ?: "audio/mpeg", file.name) ?: return null
+        return try {
+            context.contentResolver.openOutputStream(doc.uri)?.use { out -> file.inputStream().use { it.copyTo(out) } }
+                ?: throw IllegalStateException("no stream")
+            val size = file.length()
+            file.delete()
+            doc.uri.toString() to size
+        } catch (e: Exception) {
+            doc.delete()
+            null
+        }
+    }
 
     fun fileFor(episode: Episode): File {
         val ext = when {
@@ -75,7 +112,7 @@ class DownloadRepository @Inject constructor(
         workManager.cancelUniqueWork(workName(episodeId))
         val episode = episodeDao.get(episodeId) ?: return
         withContext(Dispatchers.IO) {
-            episode.localPath?.let { File(it).delete() }
+            LocalMedia.delete(context, episode.localPath)
             fileFor(episode).delete()
             partialFileFor(episode).delete()
         }
@@ -95,4 +132,14 @@ class DownloadRepository @Inject constructor(
     }
 
     private fun workName(id: Long) = "download-$id"
+
+    companion object {
+        const val SD_FOLDER = "podcasts"
+
+        /** Cartella dell'app sulla scheda rimovibile, se presente (serve per leggere lo spazio libero). */
+        fun removableAppDir(context: Context): File? =
+            context.getExternalFilesDirs(null).drop(1).firstOrNull { dir ->
+                dir != null && runCatching { Environment.isExternalStorageRemovable(dir) }.getOrDefault(false)
+            }
+    }
 }

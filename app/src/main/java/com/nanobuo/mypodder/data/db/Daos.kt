@@ -82,6 +82,9 @@ interface EpisodeDao {
     @Query("SELECT COUNT(*) FROM episodes WHERE isNew = 1")
     suspend fun countNew(): Int
 
+    @Query("SELECT COUNT(*) FROM episodes WHERE pubDate > :since AND completed = 0")
+    suspend fun countPublishedSince(since: Long): Int
+
     @Query("SELECT guid FROM episodes WHERE podcastId = :podcastId")
     suspend fun guids(podcastId: Long): List<String>
 

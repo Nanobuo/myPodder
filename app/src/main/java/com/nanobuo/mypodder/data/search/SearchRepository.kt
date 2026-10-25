@@ -2,7 +2,6 @@ package com.nanobuo.mypodder.data.search
 
 import com.nanobuo.mypodder.BuildConfig
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -57,26 +56,14 @@ class SearchRepository @Inject constructor(
     }
 
     /**
-     * Podcast che citano [term] senza averlo nel titolo o nell'autore: descrizioni dei podcast
-     * (iTunes, nel paese scelto) e persone, titoli e descrizioni degli episodi (Podcast Index).
+     * Podcast che citano [term] senza averlo nel titolo o nell'autore: persone (conduttori,
+     * ospiti), titoli e descrizioni degli episodi, autore e proprietario del feed (Podcast Index).
      * Utile per trovare il podcast di un personaggio di cui non si conosce il nome.
+     * La ricerca di iTunes non ha un vero filtro sulle descrizioni, quindi qui non è usata.
      */
-    suspend fun searchDescriptions(term: String, country: String, language: String): List<SearchResult> = withContext(Dispatchers.IO) {
-        val inDescriptions = async { runCatching { itunesSearch(term, country, 30, attribute = "descriptionTerm") }.getOrDefault(emptyList()) }
-        val byPerson = async {
-            if (!usesPodcastIndex) {
-                emptyList()
-            } else {
-                runCatching { piByPerson(term) }.getOrDefault(emptyList())
-                    .sortedByDescending { it.language?.lowercase()?.startsWith(language) == true }
-            }
-        }
-        // Alterna le due fonti, senza doppioni.
-        val a = inDescriptions.await()
-        val b = byPerson.await()
-        val seen = HashSet<String>()
-        (0 until maxOf(a.size, b.size)).flatMap { listOfNotNull(a.getOrNull(it), b.getOrNull(it)) }
-            .filter { seen.add(normalizeUrl(it.feedUrl)) }
+    suspend fun searchDescriptions(term: String, language: String): List<SearchResult> = withContext(Dispatchers.IO) {
+        if (!usesPodcastIndex) return@withContext emptyList()
+        piByPerson(term).sortedByDescending { it.language?.lowercase()?.startsWith(language) == true }
     }
 
     /** Episodi in cui compare una persona, raggruppati per podcast. */
@@ -151,13 +138,12 @@ class SearchRepository @Inject constructor(
         return json.decodeFromString<ChartLegacy>(body).feed.entry.mapNotNull { it.id.attributes?.id }
     }
 
-    private fun itunesSearch(term: String, country: String, limit: Int, attribute: String? = null): List<SearchResult> {
+    private fun itunesSearch(term: String, country: String, limit: Int): List<SearchResult> {
         val url = "https://itunes.apple.com/search".toHttpUrl().newBuilder()
             .addQueryParameter("media", "podcast")
             .addQueryParameter("term", term)
             .addQueryParameter("country", country.lowercase())
             .addQueryParameter("limit", limit.toString())
-            .apply { if (attribute != null) addQueryParameter("attribute", attribute) }
             .build()
         return json.decodeFromString<ItunesResponse>(get(Request.Builder().url(url).build())).results
             .filter { !it.feedUrl.isNullOrBlank() }
@@ -277,9 +263,6 @@ class SearchRepository @Inject constructor(
 
     @Serializable
     private data class ChartLegacyAttributes(@SerialName("im:id") val id: String? = null)
-
-    private fun normalizeUrl(url: String) =
-        url.trim().lowercase().removePrefix("https://").removePrefix("http://").removePrefix("www.").trimEnd('/')
 
     private companion object {
         const val PI_BASE = "https://api.podcastindex.org/api/1.0"

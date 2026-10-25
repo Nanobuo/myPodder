@@ -79,7 +79,7 @@ class SearchViewModel @Inject constructor(
                     _state.value = SearchState.Loading
                     val language = Countries.languageOf(cc)
                     coroutineScope {
-                        val extra = async { runCatching { search.searchDescriptions(q, cc, language) }.getOrNull() }
+                        val extra = async { runCatching { search.searchDescriptions(q, language) }.getOrNull() }
                         val main = runCatching { search.search(q, cc, language) }.getOrNull()
                         if (main != null) _state.value = SearchState.Results(main, loadingMore = true)
                         val more = extra.await()

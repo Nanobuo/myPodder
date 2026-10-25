@@ -248,8 +248,10 @@
     <string name="storage_phone">Memoria del telefono</string>
     <string name="storage_sd">Scheda microSD</string>
     <string name="storage_sd_hint">Scegli la scheda (o una sua cartella): gli episodi vanno nella cartella \"podcasts\"</string>
-    <string name="storage_sd_missing">Nessuna scheda microSD trovata</string>
     <string name="storage_sd_path">Scheda microSD · %s</string>
     <string name="storage_sd_unavailable">Scheda microSD non disponibile: i download restano sul telefono</string>
     <string name="storage_existing_note">Gli episodi già scaricati restano dove sono; i nuovi download vanno nella posizione scelta.</string>
+    <string name="storage_not_supported">Il tuo dispositivo non supporta memorie esterne</string>
+    <string name="storage_not_supported_hint">Nessuna scheda microSD disponibile: gli episodi vengono salvati nella memoria del telefono. Se il telefono ha un alloggiamento, inserisci una scheda e torna qui.</string>
+    <string name="storage_phone_only">Memoria del telefono (nessuna memoria esterna disponibile)</string>
 </resources>

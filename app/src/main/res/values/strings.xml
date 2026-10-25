@@ -251,8 +251,10 @@
     <string name="storage_phone">Phone storage</string>
     <string name="storage_sd">microSD card</string>
     <string name="storage_sd_hint">Choose the card (or a folder on it): episodes go into its \"podcasts\" folder</string>
-    <string name="storage_sd_missing">No microSD card found</string>
     <string name="storage_sd_path">microSD card · %s</string>
     <string name="storage_sd_unavailable">microSD card not available: downloads stay on the phone</string>
     <string name="storage_existing_note">Episodes already downloaded stay where they are; new downloads go to the chosen location.</string>
+    <string name="storage_not_supported">Your device does not support external storage</string>
+    <string name="storage_not_supported_hint">No microSD card is available: episodes are saved in phone storage. If your phone has a card slot, insert a card and come back here.</string>
+    <string name="storage_phone_only">Phone storage (no external storage available)</string>
 </resources>

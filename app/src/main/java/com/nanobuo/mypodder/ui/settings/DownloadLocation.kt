@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.SdCard
+import androidx.compose.material.icons.rounded.SdCardAlert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -38,7 +39,8 @@ import com.nanobuo.mypodder.data.download.DownloadRepository
 @Composable
 fun DownloadLocationRow(treeUri: String, onChange: (String) -> Unit) {
     val context = LocalContext.current
-    val hasSd = remember { DownloadRepository.removableAppDir(context) != null }
+    // Android indica solo le schede presenti e montate, non se il telefono ha l'alloggiamento.
+    val hasSd = remember { DownloadRepository.hasRemovableStorage(context) }
     var choose by remember { mutableStateOf(false) }
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
@@ -52,6 +54,7 @@ fun DownloadLocationRow(treeUri: String, onChange: (String) -> Unit) {
         treeUri.takeIf { it.isNotBlank() }?.let { runCatching { DocumentFile.fromTreeUri(context, Uri.parse(it))?.name }.getOrNull() }
     }
     val summary = when {
+        treeUri.isBlank() && !hasSd -> stringResource(R.string.storage_phone_only)
         treeUri.isBlank() -> stringResource(R.string.storage_phone)
         folderName == null -> stringResource(R.string.storage_sd_unavailable)
         folderName.equals(DownloadRepository.SD_FOLDER, ignoreCase = true) -> stringResource(R.string.storage_sd_path, "/$folderName")
@@ -82,18 +85,25 @@ fun DownloadLocationRow(treeUri: String, onChange: (String) -> Unit) {
                             }
                         },
                     )
-                    ListItem(
-                        headlineContent = { Text(stringResource(R.string.storage_sd)) },
-                        supportingContent = {
-                            Text(stringResource(if (hasSd) R.string.storage_sd_hint else R.string.storage_sd_missing))
-                        },
-                        leadingContent = { RadioButton(selected = treeUri.isNotBlank(), onClick = null, enabled = hasSd) },
-                        modifier = Modifier.clickable(enabled = hasSd) {
-                            choose = false
-                            picker.launch(sdFolderIntent(context.getSystemService(StorageManager::class.java)))
-                        },
-                    )
-                    Text(stringResource(R.string.storage_existing_note))
+                    if (hasSd) {
+                        ListItem(
+                            headlineContent = { Text(stringResource(R.string.storage_sd)) },
+                            supportingContent = { Text(stringResource(R.string.storage_sd_hint)) },
+                            leadingContent = { RadioButton(selected = treeUri.isNotBlank(), onClick = null) },
+                            modifier = Modifier.clickable {
+                                choose = false
+                                picker.launch(sdFolderIntent(context.getSystemService(StorageManager::class.java)))
+                            },
+                        )
+                        Text(stringResource(R.string.storage_existing_note))
+                    } else {
+                        // Niente opzione microSD: il dispositivo non ha memorie esterne disponibili.
+                        ListItem(
+                            headlineContent = { Text(stringResource(R.string.storage_not_supported)) },
+                            supportingContent = { Text(stringResource(R.string.storage_not_supported_hint)) },
+                            leadingContent = { Icon(Icons.Rounded.SdCardAlert, null) },
+                        )
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { choose = false }) { Text(stringResource(R.string.close)) } },

@@ -136,6 +136,13 @@ class DownloadRepository @Inject constructor(
     companion object {
         const val SD_FOLDER = "podcasts"
 
+        /** true se c'è una memoria esterna rimovibile (microSD) inserita e utilizzabile. */
+        fun hasRemovableStorage(context: Context): Boolean {
+            val storage = context.getSystemService(android.os.storage.StorageManager::class.java)
+            val mounted = storage?.storageVolumes.orEmpty().any { it.isRemovable && it.state == Environment.MEDIA_MOUNTED }
+            return mounted && removableAppDir(context) != null
+        }
+
         /** Cartella dell'app sulla scheda rimovibile, se presente (serve per leggere lo spazio libero). */
         fun removableAppDir(context: Context): File? =
             context.getExternalFilesDirs(null).drop(1).firstOrNull { dir ->

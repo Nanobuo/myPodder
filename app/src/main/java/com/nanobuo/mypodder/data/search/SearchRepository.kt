@@ -2,6 +2,7 @@ package com.nanobuo.mypodder.data.search
 
 import com.nanobuo.mypodder.BuildConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -55,6 +56,50 @@ class SearchRepository @Inject constructor(
         }
     }
 
+    /**
+     * Podcast che citano [term] senza averlo nel titolo o nell'autore: descrizioni dei podcast
+     * (iTunes, nel paese scelto) e persone, titoli e descrizioni degli episodi (Podcast Index).
+     * Utile per trovare il podcast di un personaggio di cui non si conosce il nome.
+     */
+    suspend fun searchDescriptions(term: String, country: String, language: String): List<SearchResult> = withContext(Dispatchers.IO) {
+        val inDescriptions = async { runCatching { itunesSearch(term, country, 30, attribute = "descriptionTerm") }.getOrDefault(emptyList()) }
+        val byPerson = async {
+            if (!usesPodcastIndex) {
+                emptyList()
+            } else {
+                runCatching { piByPerson(term) }.getOrDefault(emptyList())
+                    .sortedByDescending { it.language?.lowercase()?.startsWith(language) == true }
+            }
+        }
+        // Alterna le due fonti, senza doppioni.
+        val a = inDescriptions.await()
+        val b = byPerson.await()
+        val seen = HashSet<String>()
+        (0 until maxOf(a.size, b.size)).flatMap { listOfNotNull(a.getOrNull(it), b.getOrNull(it)) }
+            .filter { seen.add(normalizeUrl(it.feedUrl)) }
+    }
+
+    /** Episodi in cui compare una persona, raggruppati per podcast. */
+    private fun piByPerson(term: String): List<SearchResult> {
+        val url = "$PI_BASE/search/byperson".toHttpUrl().newBuilder()
+            .addQueryParameter("q", term)
+            .addQueryParameter("max", "60")
+            .build()
+        return json.decodeFromString<PiPersonResponse>(piGet(url.toString())).items
+            .filter { !it.feedUrl.isNullOrBlank() }
+            .distinctBy { it.feedId ?: it.feedUrl }
+            .map {
+                SearchResult(
+                    title = it.feedTitle.orEmpty(),
+                    author = it.feedAuthor,
+                    feedUrl = it.feedUrl!!,
+                    imageUrl = it.feedImage?.takeIf(String::isNotBlank),
+                    description = null,
+                    language = it.feedLanguage,
+                )
+            }
+    }
+
     /** Podcast di tendenza in una lingua, eventualmente limitati ad alcune categorie. */
     suspend fun trending(language: String, categories: List<String> = emptyList(), max: Int = 30): List<SearchResult> =
         withContext(Dispatchers.IO) {
@@ -106,12 +151,13 @@ class SearchRepository @Inject constructor(
         return json.decodeFromString<ChartLegacy>(body).feed.entry.mapNotNull { it.id.attributes?.id }
     }
 
-    private fun itunesSearch(term: String, country: String, limit: Int): List<SearchResult> {
+    private fun itunesSearch(term: String, country: String, limit: Int, attribute: String? = null): List<SearchResult> {
         val url = "https://itunes.apple.com/search".toHttpUrl().newBuilder()
             .addQueryParameter("media", "podcast")
             .addQueryParameter("term", term)
             .addQueryParameter("country", country.lowercase())
             .addQueryParameter("limit", limit.toString())
+            .apply { if (attribute != null) addQueryParameter("attribute", attribute) }
             .build()
         return json.decodeFromString<ItunesResponse>(get(Request.Builder().url(url).build())).results
             .filter { !it.feedUrl.isNullOrBlank() }
@@ -131,18 +177,7 @@ class SearchRepository @Inject constructor(
         categories.flatMap { it.split("&") }.map { it.trim() }.filter { it.isNotEmpty() }.distinct().joinToString(",")
 
     private fun piFeeds(url: String): List<SearchResult> {
-        val now = (System.currentTimeMillis() / 1000).toString()
-        val key = BuildConfig.PODCASTINDEX_KEY
-        val hash = MessageDigest.getInstance("SHA-1")
-            .digest((key + BuildConfig.PODCASTINDEX_SECRET + now).toByteArray())
-            .joinToString("") { "%02x".format(it) }
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Auth-Key", key)
-            .header("X-Auth-Date", now)
-            .header("Authorization", hash)
-            .build()
-        return json.decodeFromString<PiResponse>(get(request)).feeds
+        return json.decodeFromString<PiResponse>(piGet(url)).feeds
             .filter { !it.url.isNullOrBlank() }
             .map {
                 SearchResult(
@@ -156,11 +191,40 @@ class SearchRepository @Inject constructor(
             }
     }
 
+    /** Richiesta autenticata a Podcast Index. */
+    private fun piGet(url: String): String {
+        val now = (System.currentTimeMillis() / 1000).toString()
+        val key = BuildConfig.PODCASTINDEX_KEY
+        val hash = MessageDigest.getInstance("SHA-1")
+            .digest((key + BuildConfig.PODCASTINDEX_SECRET + now).toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Auth-Key", key)
+            .header("X-Auth-Date", now)
+            .header("Authorization", hash)
+            .build()
+        return get(request)
+    }
+
     private fun get(request: Request): String =
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             response.body.string()
         }
+
+    @Serializable
+    private data class PiPersonResponse(val items: List<PiPersonItem> = emptyList())
+
+    @Serializable
+    private data class PiPersonItem(
+        val feedId: Long? = null,
+        val feedUrl: String? = null,
+        val feedTitle: String? = null,
+        val feedAuthor: String? = null,
+        val feedImage: String? = null,
+        val feedLanguage: String? = null,
+    )
 
     @Serializable
     private data class PiResponse(val feeds: List<PiFeed> = emptyList())
@@ -213,6 +277,9 @@ class SearchRepository @Inject constructor(
 
     @Serializable
     private data class ChartLegacyAttributes(@SerialName("im:id") val id: String? = null)
+
+    private fun normalizeUrl(url: String) =
+        url.trim().lowercase().removePrefix("https://").removePrefix("http://").removePrefix("www.").trimEnd('/')
 
     private companion object {
         const val PI_BASE = "https://api.podcastindex.org/api/1.0"

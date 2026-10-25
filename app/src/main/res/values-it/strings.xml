@@ -242,4 +242,6 @@
     <string name="topic_kids">Bambini e famiglia</string>
     <string name="topic_fiction">Narrativa</string>
     <string name="topic_religion">Religione e spiritualità</string>
+    <string name="search_in_descriptions">Citati nelle descrizioni</string>
+    <string name="search_in_descriptions_hint">Podcast che citano la tua ricerca nella descrizione, tra conduttori e ospiti o negli episodi</string>
 </resources>

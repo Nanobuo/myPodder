@@ -14,6 +14,9 @@ import com.nanobuo.mypodder.data.settings.SettingsRepository
 import com.nanobuo.mypodder.ui.nav.PreviewRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +32,12 @@ import javax.inject.Inject
 sealed interface SearchState {
     data object Idle : SearchState
     data object Loading : SearchState
-    data class Results(val items: List<SearchResult>) : SearchState
+    data class Results(
+        val items: List<SearchResult>,
+        /** Podcast che citano il termine nella descrizione o negli episodi. */
+        val fromDescriptions: List<SearchResult> = emptyList(),
+        val loadingMore: Boolean = false,
+    ) : SearchState
     data object Error : SearchState
 }
 
@@ -63,14 +71,29 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             combine(_query.debounce(500).map { it.trim() }, country) { q, cc -> q to cc }
                 .distinctUntilChanged()
-                .collect { (q, cc) ->
+                .collectLatest { (q, cc) ->
                     if (q.length < 2 || looksLikeUrl(q)) {
                         _state.value = SearchState.Idle
-                        return@collect
+                        return@collectLatest
                     }
                     _state.value = SearchState.Loading
-                    _state.value = runCatching { search.search(q, cc, Countries.languageOf(cc)) }
-                        .fold(onSuccess = { SearchState.Results(it) }, onFailure = { SearchState.Error })
+                    val language = Countries.languageOf(cc)
+                    coroutineScope {
+                        val extra = async { runCatching { search.searchDescriptions(q, cc, language) }.getOrNull() }
+                        val main = runCatching { search.search(q, cc, language) }.getOrNull()
+                        if (main != null) _state.value = SearchState.Results(main, loadingMore = true)
+                        val more = extra.await()
+                        _state.value = when {
+                            main == null && more == null -> SearchState.Error
+                            else -> {
+                                val known = main.orEmpty().map { it.feedUrl.trimEnd('/').lowercase() }.toSet()
+                                SearchState.Results(
+                                    items = main.orEmpty(),
+                                    fromDescriptions = more.orEmpty().filter { it.feedUrl.trimEnd('/').lowercase() !in known },
+                                )
+                            }
+                        }
+                    }
                 }
         }
     }

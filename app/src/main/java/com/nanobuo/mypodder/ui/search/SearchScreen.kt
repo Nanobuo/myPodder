@@ -142,14 +142,30 @@ fun SearchScreen(
                 state is SearchState.Loading -> LoadingBox()
                 state is SearchState.Error -> EmptyState(Icons.Rounded.WifiOff, stringResource(R.string.search_error))
                 state is SearchState.Results -> {
-                    val items = (state as SearchState.Results).items
-                    if (items.isEmpty()) {
+                    val results = state as SearchState.Results
+                    if (results.items.isEmpty() && results.fromDescriptions.isEmpty() && !results.loadingMore) {
                         EmptyState(Icons.Rounded.SearchOff, stringResource(R.string.search_no_results))
                     } else {
                         val listState = rememberLazyListState()
                         OnTabReselected(SearchRoute::class) { listState.animateScrollToItem(0) }
                         LazyColumn(Modifier.fillMaxSize(), state = listState) {
-                            resultItems(items, onPreview)
+                            resultItems(results.items, onPreview)
+                            if (results.fromDescriptions.isNotEmpty()) {
+                                item(key = "desc-title") {
+                                    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) {
+                                        Text(stringResource(R.string.search_in_descriptions), style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            stringResource(R.string.search_in_descriptions_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                                resultItems(results.fromDescriptions, onPreview, keyPrefix = "desc-")
+                            }
+                            if (results.loadingMore) {
+                                item(key = "more-loading") { MoreLoading() }
+                            }
                             if (viewModel.usesPodcastIndex) footer()
                         }
                     }
@@ -265,6 +281,14 @@ private fun DiscoverList(
             }
         }
         if (poweredByPodcastIndex) footer()
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MoreLoading() {
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+        LoadingIndicator()
     }
 }
 

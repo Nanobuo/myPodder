@@ -245,4 +245,6 @@
     <string name="topic_kids">Kids &amp; family</string>
     <string name="topic_fiction">Fiction</string>
     <string name="topic_religion">Religion &amp; spirituality</string>
+    <string name="search_in_descriptions">Mentioned in descriptions</string>
+    <string name="search_in_descriptions_hint">Podcasts that mention your search in their description, hosts, guests or episodes</string>
 </resources>

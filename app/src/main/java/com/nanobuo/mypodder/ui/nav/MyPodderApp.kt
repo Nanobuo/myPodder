@@ -116,13 +116,18 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
     val newAtStart by viewModel.newEpisodesAtStart.collectAsStateWithLifecycle()
     LaunchedEffect(newAtStart) {
         val count = newAtStart ?: return@LaunchedEffect
-        viewModel.consumeNewEpisodesAtStart()
-        val result = snackbar.showSnackbar(
-            context.resources.getQuantityString(R.plurals.new_episodes_available, count, count),
-            actionLabel = context.getString(R.string.show),
-            withDismissAction = true,
-            duration = SnackbarDuration.Long,
-        )
+        // Lo stato va azzerato solo DOPO aver mostrato il messaggio: azzerarlo prima cambierebbe la
+        // chiave di questo effetto, che verrebbe annullato prima di far comparire lo snackbar.
+        val result = try {
+            snackbar.showSnackbar(
+                context.resources.getQuantityString(R.plurals.new_episodes_available, count, count),
+                actionLabel = context.getString(R.string.show),
+                withDismissAction = true,
+                duration = SnackbarDuration.Long,
+            )
+        } finally {
+            viewModel.consumeNewEpisodesAtStart()
+        }
         if (result == SnackbarResult.ActionPerformed) {
             nav.navigate(LibraryRoute) {
                 popUpTo(nav.graph.findStartDestination().id) { saveState = true }

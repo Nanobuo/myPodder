@@ -135,11 +135,14 @@ fun LibraryScreen(
     OpmlStatusEffect(opmlStatus, snackbar, viewModel::consumeOpml)
     LaunchedEffect(refreshResult) {
         val count = refreshResult ?: return@LaunchedEffect
-        viewModel.consumeRefreshResult()
-        snackbar.showSnackbar(
-            if (count == 0) context.getString(R.string.no_new_episodes)
-            else context.resources.getQuantityString(R.plurals.new_episodes, count, count)
-        )
+        try {
+            snackbar.showSnackbar(
+                if (count == 0) context.getString(R.string.no_new_episodes)
+                else context.resources.getQuantityString(R.plurals.new_episodes, count, count)
+            )
+        } finally {
+            viewModel.consumeRefreshResult() // dopo, altrimenti il messaggio verrebbe annullato
+        }
     }
 
     Scaffold(

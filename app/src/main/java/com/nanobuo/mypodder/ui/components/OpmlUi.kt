@@ -38,7 +38,10 @@ fun OpmlStatusEffect(status: OpmlStatus, snackbar: SnackbarHostState, consume: (
             OpmlStatus.Error -> context.getString(R.string.opml_error)
             else -> null
         } ?: return@LaunchedEffect
-        consume()
-        snackbar.showSnackbar(message)
+        try {
+            snackbar.showSnackbar(message)
+        } finally {
+            consume() // dopo, altrimenti l'effetto verrebbe annullato prima di mostrare il messaggio
+        }
     }
 }

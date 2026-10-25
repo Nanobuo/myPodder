@@ -23,6 +23,32 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
+      # Verifica le credenziali di Podcast Index (Repository secrets): senza, l'app usa iTunes
+      # e mancano tendenze e ricerca per persona.
+      - name: Check Podcast Index credentials
+        env:
+          KEY: ${{ secrets.PODCASTINDEX_KEY }}
+          SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$SECRET" ]; then
+            echo "::warning title=Podcast Index::Repository secrets PODCASTINDEX_KEY/PODCASTINDEX_SECRET missing: the app falls back to iTunes search."
+            exit 0
+          fi
+          NOW=$(date +%s); HASH=$(printf '%s' "$KEY$SECRET$NOW" | sha1sum | cut -d' ' -f1)
+          RESP=$(curl -s -G "https://api.podcastindex.org/api/1.0/search/byperson" --data-urlencode "q=Fedez" -d max=40 \
+            -H "User-Agent: myPodder-ci" -H "X-Auth-Key: $KEY" -H "X-Auth-Date: $NOW" -H "Authorization: $HASH")
+          SUMMARY=$(printf '%s' "$RESP" | python3 -c "import sys,json
+          try:
+              d=json.load(sys.stdin)
+          except Exception:
+              print('invalid response'); sys.exit()
+          feeds=[]
+          for i in d.get('items',[]):
+              t=i.get('feedTitle')
+              if t and t not in feeds: feeds.append(t)
+          print('status', d.get('status'), '- byperson Fedez:', len(d.get('items',[])), 'episodes,', '; '.join(feeds[:6]))")
+          echo "::notice title=Podcast Index::$SUMMARY"
+
       - name: Build debug APK
         env:
           PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}

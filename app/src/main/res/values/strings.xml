@@ -260,11 +260,11 @@
     <string name="settings_sync">Sync</string>
     <string name="sync_sign_in">Sign in to sync</string>
     <string name="sync_sign_in_summary">Subscriptions, episode progress and queue on all your devices</string>
-    <string name="sync_email_hint">Enter your email: you will receive a code to sign in. No password needed, and an account is created automatically the first time.</string>
+    <string name="sync_email_hint">Enter your email: you will receive a sign-in link. No password needed, and an account is created automatically the first time.</string>
     <string name="sync_email">Email</string>
-    <string name="sync_send_code">Send code</string>
-    <string name="sync_code_hint">We sent an email to %s. Enter the code, or open the link in the email on this phone.</string>
-    <string name="sync_code">Code</string>
+    <string name="sync_send_code">Send link</string>
+    <string name="sync_code_hint">We sent an email to %s. Open it on this phone and tap the link: the app reopens already signed in. If the email contains a code, you can also enter it here.</string>
+    <string name="sync_code">Code (optional)</string>
     <string name="sync_verify">Sign in</string>
     <string name="sync_change_email">Change email</string>
     <string name="sync_login_error">Sign-in failed: %s</string>

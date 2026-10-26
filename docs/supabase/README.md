@@ -11,18 +11,13 @@ I dati stanno in un progetto Supabase gratuito.
 ## Configurazione del progetto (una volta sola)
 
 1. **Tabelle**: in *SQL Editor*, incolla ed esegui [`schema.sql`](schema.sql).
-2. **Email con il codice**: in *Authentication → Emails → Templates*, nei modelli **Magic Link** e
-   **Confirm signup** aggiungi il codice, ad esempio:
-
-   ```html
-   <h2>Accedi a myPodder</h2>
-   <p>Il tuo codice: <strong>{{ .Token }}</strong></p>
-   <p>Oppure apri questo link dal telefono: <a href="{{ .ConfirmationURL }}">Accedi</a></p>
-   ```
-
-3. **Link di ritorno nell'app**: in *Authentication → URL Configuration → Redirect URLs* aggiungi:
+2. **Link di ritorno nell'app**: in *Authentication → URL Configuration → Redirect URLs* aggiungi:
    - `com.nanobuo.mypodder://login`
    - `com.nanobuo.mypodder.debug://login` (build di debug)
+
+Il template standard delle email contiene già il link di accesso: basta questo, i template non
+vanno modificati. Modificarli, ad esempio per aggiungere il codice `{{ .Token }}`, sul piano
+gratuito richiede un SMTP proprio. L'app accetta anche il codice, se presente.
 
 URL del progetto e chiave pubblicabile sono già impostati in `app/build.gradle.kts`. Puoi
 sostituirli con le variabili `SUPABASE_URL` e `SUPABASE_KEY`, da Secrets o da `local.properties`.

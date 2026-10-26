@@ -257,11 +257,11 @@
     <string name="settings_sync">Sincronizzazione</string>
     <string name="sync_sign_in">Accedi per sincronizzare</string>
     <string name="sync_sign_in_summary">Iscrizioni, avanzamento degli episodi e coda su tutti i tuoi dispositivi</string>
-    <string name="sync_email_hint">Inserisci la tua email: riceverai un codice per accedere. Niente password, e la prima volta l\'account viene creato da solo.</string>
+    <string name=\"sync_email_hint\">Inserisci la tua email: riceverai un link per accedere. Niente password, e la prima volta l\'account viene creato da solo.</string>
     <string name="sync_email">Email</string>
-    <string name="sync_send_code">Invia codice</string>
-    <string name="sync_code_hint">Abbiamo inviato un\'email a %s. Inserisci il codice oppure apri il link dell\'email su questo telefono.</string>
-    <string name="sync_code">Codice</string>
+    <string name="sync_send_code">Invia link</string>
+    <string name=\"sync_code_hint\">Abbiamo inviato un\'email a %s. Aprila su questo telefono e tocca il link: l\'app si riapre già collegata. Se l\'email contiene un codice, puoi anche inserirlo qui.</string>
+    <string name="sync_code">Codice (facoltativo)</string>
     <string name="sync_verify">Accedi</string>
     <string name="sync_change_email">Cambia email</string>
     <string name="sync_login_error">Accesso non riuscito: %s</string>

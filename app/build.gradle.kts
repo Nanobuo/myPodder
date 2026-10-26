@@ -24,8 +24,8 @@ android {
         applicationId = "com.nanobuo.mypodder"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10601
-        versionName = "1.6.1"
+        versionCode = 10602
+        versionName = "1.6.2"
 
         buildConfigField("String", "PODCASTINDEX_KEY", "\"${secret("PODCASTINDEX_KEY")}\"")
         buildConfigField("String", "PODCASTINDEX_SECRET", "\"${secret("PODCASTINDEX_SECRET")}\"")

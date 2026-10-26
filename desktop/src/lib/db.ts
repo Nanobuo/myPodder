@@ -127,7 +127,12 @@ const SCHEMA = [
     day INTEGER NOT NULL, episodeId INTEGER NOT NULL, podcastId INTEGER NOT NULL,
     listenedMs INTEGER NOT NULL DEFAULT 0, contentMs INTEGER NOT NULL DEFAULT 0,
     completed INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (day, episodeId))`,
+  `CREATE TABLE IF NOT EXISTS remote_listening (
+    deviceId TEXT NOT NULL, day INTEGER NOT NULL, feedUrl TEXT NOT NULL, guid TEXT NOT NULL,
+    listenedMs INTEGER NOT NULL, contentMs INTEGER NOT NULL, completed INTEGER NOT NULL,
+    PRIMARY KEY (deviceId, day, feedUrl, guid))`,
   `CREATE INDEX IF NOT EXISTS listening_podcast ON listening(podcastId)`,
   `CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 ];
@@ -138,6 +143,11 @@ async function open(): Promise<Database> {
   const db = await Database.load("sqlite:mypodder.db");
   await db.execute("PRAGMA foreign_keys = ON");
   await db.execute("PRAGMA journal_mode = WAL");
+  // Database creati dalla prima versione: manca la data di modifica delle statistiche.
+  const cols = await db.select<{ name: string }[]>("PRAGMA table_info(listening)");
+  if (cols.length && !cols.some((c) => c.name === "updatedAt")) {
+    await db.execute("ALTER TABLE listening ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 1");
+  }
   for (const sql of SCHEMA) await db.execute(sql);
   return db;
 }
@@ -434,56 +444,103 @@ export const chaptersDb = {
 
 // --- Statistiche ---
 
+// Le statistiche sommano gli ascolti di questo computer (listening) e quelli sincronizzati dagli
+// altri dispositivi (remote_listening).
+const ALL_LISTENING = "(SELECT day, listenedMs, contentMs, completed FROM listening UNION ALL SELECT day, listenedMs, contentMs, completed FROM remote_listening)";
+
+export interface ListeningSyncRow {
+  day: number;
+  feedUrl: string;
+  guid: string;
+  listenedMs: number;
+  contentMs: number;
+  completed: boolean;
+  updatedAt: number;
+}
+
+export interface RemoteListening {
+  deviceId: string;
+  day: number;
+  feedUrl: string;
+  guid: string;
+  listenedMs: number;
+  contentMs: number;
+  completed: boolean;
+}
+
 export const listeningDb = {
   async add(day: number, episodeId: number, podcastId: number, listenedMs: number, contentMs: number) {
     await batch([
       ["INSERT OR IGNORE INTO listening (day, episodeId, podcastId, listenedMs, contentMs) VALUES (?, ?, ?, 0, 0)", [day, episodeId, podcastId]],
       [
-        "UPDATE listening SET listenedMs = listenedMs + ?, contentMs = contentMs + ? WHERE day = ? AND episodeId = ?",
-        [Math.round(listenedMs), Math.round(contentMs), day, episodeId],
+        "UPDATE listening SET listenedMs = listenedMs + ?, contentMs = contentMs + ?, updatedAt = ? WHERE day = ? AND episodeId = ?",
+        [Math.round(listenedMs), Math.round(contentMs), Date.now(), day, episodeId],
       ],
     ]);
   },
   async markCompleted(day: number, episodeId: number, podcastId: number) {
     await batch([
       ["INSERT OR IGNORE INTO listening (day, episodeId, podcastId, listenedMs, contentMs) VALUES (?, ?, ?, 0, 0)", [day, episodeId, podcastId]],
-      ["UPDATE listening SET completed = 1 WHERE day = ? AND episodeId = ?", [day, episodeId]],
+      ["UPDATE listening SET completed = 1, updatedAt = ? WHERE day = ? AND episodeId = ?", [Date.now(), day, episodeId]],
     ]);
   },
   async all(): Promise<ListeningEntry[]> {
     return (await select("SELECT * FROM listening")).map((r) => ({ ...(r as unknown as ListeningEntry), completed: bool(r.completed) }));
   },
-  clear: () => execute("DELETE FROM listening"),
+  /** Azzera le statistiche: quelle di questo computer e quelle scaricate dagli altri dispositivi. */
+  clear: () => batch([["DELETE FROM listening", []], ["DELETE FROM remote_listening", []]]),
+  clearRemote: () => execute("DELETE FROM remote_listening"),
+  deleteUpTo: (until: number) => execute("DELETE FROM listening WHERE updatedAt <= ?", [until]),
+  /** Ripristina dopo "Annulla": le righe tornano "modificate" per essere ricaricate sul server. */
   async restore(entries: ListeningEntry[]) {
+    const now = Date.now();
     await batch(entries.map((e) => [
-      "INSERT OR REPLACE INTO listening (day, episodeId, podcastId, listenedMs, contentMs, completed) VALUES (?, ?, ?, ?, ?, ?)",
-      [e.day, e.episodeId, e.podcastId, e.listenedMs, e.contentMs, e.completed ? 1 : 0],
+      "INSERT OR REPLACE INTO listening (day, episodeId, podcastId, listenedMs, contentMs, completed, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [e.day, e.episodeId, e.podcastId, e.listenedMs, e.contentMs, e.completed ? 1 : 0, now],
+    ]));
+  },
+  async changedSince(since: number, limit: number): Promise<ListeningSyncRow[]> {
+    return (await select<ListeningSyncRow>(
+      `SELECT l.day, p.feedUrl, e.guid, l.listenedMs, l.contentMs, l.completed, l.updatedAt
+       FROM listening l JOIN episodes e ON e.id = l.episodeId JOIN podcasts p ON p.id = e.podcastId
+       WHERE l.updatedAt > ? ORDER BY l.updatedAt LIMIT ?`,
+      [since, limit],
+    )).map((r) => ({ ...r, completed: bool(r.completed) }));
+  },
+  async upsertRemote(rows: RemoteListening[]) {
+    await batch(rows.map((r) => [
+      `INSERT OR REPLACE INTO remote_listening (deviceId, day, feedUrl, guid, listenedMs, contentMs, completed)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [r.deviceId, r.day, r.feedUrl, r.guid, r.listenedMs, r.contentMs, r.completed ? 1 : 0],
     ]));
   },
   async totals(fromDay: number) {
     const r = (await select<{ listenedMs: number; contentMs: number; completed: number }>(
       `SELECT COALESCE(SUM(listenedMs), 0) AS listenedMs, COALESCE(SUM(contentMs), 0) AS contentMs,
-       COALESCE(SUM(completed), 0) AS completed FROM listening WHERE day >= ?`,
+       COALESCE(SUM(completed), 0) AS completed FROM ${ALL_LISTENING} WHERE day >= ?`,
       [fromDay],
     ))[0];
     return { listenedMs: Number(r?.listenedMs ?? 0), contentMs: Number(r?.contentMs ?? 0), completed: Number(r?.completed ?? 0) };
   },
   days: (fromDay: number) =>
     select<{ day: number; listenedMs: number }>(
-      "SELECT day, SUM(listenedMs) AS listenedMs FROM listening WHERE day >= ? GROUP BY day ORDER BY day",
+      `SELECT day, SUM(listenedMs) AS listenedMs FROM ${ALL_LISTENING} WHERE day >= ? GROUP BY day ORDER BY day`,
       [fromDay],
     ),
   async activeDays(minMs: number): Promise<number[]> {
     return (await select<{ day: number }>(
-      "SELECT day FROM listening GROUP BY day HAVING SUM(listenedMs) >= ? ORDER BY day DESC",
+      `SELECT day FROM ${ALL_LISTENING} GROUP BY day HAVING SUM(listenedMs) >= ? ORDER BY day DESC`,
       [minMs],
     )).map((r) => r.day);
   },
   topPodcasts: (fromDay: number, limit: number) =>
     select<{ podcastId: number; title: string; imageUrl: string | null; listenedMs: number }>(
-      `SELECT l.podcastId AS podcastId, p.title AS title, p.imageUrl AS imageUrl, SUM(l.listenedMs) AS listenedMs
-       FROM listening l JOIN podcasts p ON p.id = l.podcastId WHERE l.day >= ?
-       GROUP BY l.podcastId ORDER BY listenedMs DESC LIMIT ?`,
+      `SELECT t.podcastId AS podcastId, p.title AS title, p.imageUrl AS imageUrl, SUM(t.listenedMs) AS listenedMs
+       FROM (SELECT podcastId, day, listenedMs FROM listening
+             UNION ALL SELECT p2.id AS podcastId, r.day, r.listenedMs FROM remote_listening r
+             JOIN podcasts p2 ON p2.feedUrl = r.feedUrl) t
+       JOIN podcasts p ON p.id = t.podcastId WHERE t.day >= ?
+       GROUP BY t.podcastId ORDER BY listenedMs DESC LIMIT ?`,
       [fromDay, limit],
     ),
 };

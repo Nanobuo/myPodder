@@ -50,6 +50,11 @@ class SyncStore @Inject constructor(
         val pulledUntil = longPreferencesKey("pulled_until")
         val queueUpdatedAt = longPreferencesKey("queue_updated_at")
         val syncedFeeds = stringSetPreferencesKey("synced_feeds")
+        val deviceId = stringPreferencesKey("device_id")
+        val statsPushedUntil = longPreferencesKey("stats_pushed_until")
+        val statsPulledUntil = longPreferencesKey("stats_pulled_until")
+        val statsResetSeen = longPreferencesKey("stats_reset_seen")
+        val statsResetPending = longPreferencesKey("stats_reset_pending")
     }
 
     private val data = context.syncStore.data
@@ -84,7 +89,26 @@ class SyncStore @Inject constructor(
     }
 
     /** Esce dall'account e dimentica cursori e stato: il prossimo accesso riparte da una fusione. */
-    suspend fun clear() = context.syncStore.edit { it.clear() }
+    suspend fun clear() = context.syncStore.edit {
+        // L'identificativo del dispositivo resta: le sue statistiche sul server vengono sovrascritte, non duplicate.
+        val device = it[Keys.deviceId]
+        it.clear()
+        if (device != null) it[Keys.deviceId] = device
+    }
+
+    /** Identificativo stabile di questo dispositivo, per separare le sue statistiche da quelle degli altri. */
+    suspend fun deviceId(): String = data.first()[Keys.deviceId] ?: java.util.UUID.randomUUID().toString().also { id ->
+        context.syncStore.edit { it[Keys.deviceId] = id }
+    }
+
+    suspend fun statsPushedUntil() = long(Keys.statsPushedUntil)
+    suspend fun statsPulledUntil() = long(Keys.statsPulledUntil)
+    suspend fun statsResetSeen() = long(Keys.statsResetSeen)
+    suspend fun statsResetPending() = long(Keys.statsResetPending)
+    suspend fun setStatsPushedUntil(v: Long) = context.syncStore.edit { it[Keys.statsPushedUntil] = v }
+    suspend fun setStatsPulledUntil(v: Long) = context.syncStore.edit { it[Keys.statsPulledUntil] = v }
+    suspend fun setStatsResetSeen(v: Long) = context.syncStore.edit { it[Keys.statsResetSeen] = v }
+    suspend fun setStatsResetPending(v: Long) = context.syncStore.edit { it[Keys.statsResetPending] = v }
 
     private suspend fun long(key: Preferences.Key<Long>) = data.first()[key] ?: 0
 

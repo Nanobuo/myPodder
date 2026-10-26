@@ -136,6 +136,31 @@ data class ListeningEntry(
     /** Durata di contenuto riprodotto: con velocità > 1 è maggiore di listenedMs. */
     val contentMs: Long,
     val completed: Boolean = false,
+    /** Ultima modifica: base della sincronizzazione delle statistiche. */
+    val updatedAt: Long = 0,
+)
+
+/** Ascolti fatti su altri dispositivi dello stesso account, scaricati dalla sincronizzazione. */
+@Entity(tableName = "remote_listening", primaryKeys = ["deviceId", "day", "feedUrl", "guid"])
+data class RemoteListening(
+    val deviceId: String,
+    val day: Long,
+    val feedUrl: String,
+    val guid: String,
+    val listenedMs: Long,
+    val contentMs: Long,
+    val completed: Boolean,
+)
+
+/** Riga di ascolto locale con feed e guid, come sul server. */
+data class ListeningSyncRow(
+    val day: Long,
+    val feedUrl: String,
+    val guid: String,
+    val listenedMs: Long,
+    val contentMs: Long,
+    val completed: Boolean,
+    val updatedAt: Long,
 )
 
 data class DayTotal(val day: Long, val listenedMs: Long)

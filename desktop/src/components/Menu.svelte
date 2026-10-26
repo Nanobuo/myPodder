@@ -21,7 +21,7 @@
     e.stopPropagation();
     if (!open) {
       const r = anchor.getBoundingClientRect();
-      const up = r.bottom + 48 * items.length + 16 > window.innerHeight;
+      const up = r.bottom + 56 * items.length + 16 > window.innerHeight;
       pos = { top: up ? r.top : r.bottom, left: Math.min(r.right, window.innerWidth - 8), up };
     }
     open = !open;
@@ -61,8 +61,8 @@
   .menu {
     position: fixed;
     transform: translateX(-100%);
-    min-width: 200px;
-    max-width: 320px;
+    min-width: 220px;
+    max-width: 300px;
     padding: 8px 0;
     border-radius: 12px;
     background: var(--md-surface-container);
@@ -76,18 +76,32 @@
   .item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     width: 100%;
-    height: 44px;
-    padding: 0 16px;
+    min-height: 48px;
+    padding: 12px 20px 12px 16px;
     border: none;
     background: none;
     text-align: left;
     cursor: pointer;
     color: var(--md-on-surface);
     font-size: 14px;
+    line-height: 20px;
+  }
+  .item + .item {
+    margin-top: 2px;
+  }
+  .item span {
+    flex: 1;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
   .item :global(.ms) {
+    flex: none;
     color: var(--md-on-surface-variant);
   }
   .item:hover {

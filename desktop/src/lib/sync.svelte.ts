@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { episodesDb, kv, podcastsDb, queueDb } from "./db.ts";
+import { episodesDb, kv, listeningDb, podcastsDb, queueDb } from "./db.ts";
 import { httpFetch, isTauri } from "./net.ts";
 import * as repo from "./repo.ts";
 import { changed } from "./store.svelte.ts";
@@ -61,7 +61,27 @@ const K = {
   pulledUntil: "sync.pulledUntil",
   queueUpdatedAt: "sync.queueUpdatedAt",
   syncedFeeds: "sync.syncedFeeds",
+  statsPushedUntil: "sync.statsPushedUntil",
+  statsPulledUntil: "sync.statsPulledUntil",
+  statsResetSeen: "sync.statsResetSeen",
+  statsResetPending: "sync.statsResetPending",
 };
+
+/** Fuori da K: l'identificativo del computer resta anche uscendo dall'account. */
+const DEVICE_KEY = "device.id";
+
+interface RemoteListeningRow {
+  user_id?: string;
+  device_id: string;
+  day: number;
+  feed_url: string;
+  guid: string;
+  listened_ms: number;
+  content_ms: number;
+  completed: boolean;
+  updated_at: number;
+  synced_at?: number;
+}
 
 async function num(key: string) {
   return (await kv.get<number>(key)) ?? 0;
@@ -112,6 +132,7 @@ class SyncManager {
         await this.pushStates(token);
         await this.pullStates(token, newFeeds);
         await this.syncQueue(token);
+        await this.syncStats(token);
       });
       this.lastSyncAt = Date.now();
       await kv.set(K.lastSyncAt, this.lastSyncAt);
@@ -465,6 +486,106 @@ class SyncManager {
       const items = (await episodesDb.queueKeys()).map((k) => ({ f: k.feedUrl, g: k.guid }));
       await this.upsert(token, "queue_state", "user_id", [{ user_id: this.session!.userId, items, updated_at: at }]);
       await kv.set(K.queueUpdatedAt, at);
+    }
+  }
+
+  // --- Statistiche ---
+
+  /** Azzeramento fatto qui: alla prossima sincronizzazione vale per tutti i dispositivi. */
+  async markStatsReset() {
+    await kv.set(K.statsResetPending, Date.now());
+  }
+
+  /** Annullamento dell'azzeramento: se non è ancora partito, resta solo locale. */
+  async cancelStatsReset() {
+    await kv.set(K.statsResetPending, 0);
+    await kv.set(K.statsPulledUntil, 0);
+    await kv.set(K.statsPushedUntil, 0);
+  }
+
+  private async deviceId(): Promise<string> {
+    let id = await kv.get<string>(DEVICE_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      await kv.set(DEVICE_KEY, id);
+    }
+    return id;
+  }
+
+  /**
+   * Ogni dispositivo carica i propri ascolti e scarica quelli degli altri: le statistiche ne
+   * mostrano la somma. Se le tabelle mancano (schema non aggiornato) il resto continua.
+   */
+  private async syncStats(token: string) {
+    try {
+      const device = await this.deviceId();
+      const uid = this.session!.userId;
+      const pending = await num(K.statsResetPending);
+      const remote = (await this.rest<{ reset_at: number }[]>("stats_reset?select=reset_at", token))[0]?.reset_at ?? 0;
+      if (pending > 0 && pending > remote) {
+        await this.upsert(token, "stats_reset", "user_id", [{ user_id: uid, reset_at: pending, updated_at: pending }]);
+        await this.call(`/rest/v1/listening_stats?updated_at=lte.${pending}`, { method: "DELETE", token });
+        await kv.set(K.statsResetSeen, pending);
+        await kv.set(K.statsResetPending, 0);
+      } else if (remote > (await num(K.statsResetSeen))) {
+        // Statistiche azzerate da un altro dispositivo.
+        await listeningDb.deleteUpTo(remote);
+        await listeningDb.clearRemote();
+        await kv.set(K.statsPulledUntil, 0);
+        await kv.set(K.statsResetSeen, remote);
+        await kv.set(K.statsResetPending, 0);
+        changed("listening");
+      }
+
+      const start = Date.now();
+      let since = await num(K.statsPushedUntil);
+      while (true) {
+        const batch = await listeningDb.changedSince(since, PAGE);
+        if (!batch.length) break;
+        await this.upsert(token, "listening_stats", "user_id,device_id,day,feed_url,guid", batch.map((r): RemoteListeningRow => ({
+          user_id: uid,
+          device_id: device,
+          day: r.day,
+          feed_url: r.feedUrl,
+          guid: r.guid,
+          listened_ms: r.listenedMs,
+          content_ms: r.contentMs,
+          completed: r.completed,
+          updated_at: r.updatedAt,
+        })));
+        since = batch[batch.length - 1].updatedAt;
+        await kv.set(K.statsPushedUntil, Math.min(since, start));
+        if (batch.length < PAGE) break;
+      }
+
+      const after = await num(K.statsResetSeen);
+      const pulled = await num(K.statsPulledUntil);
+      let cursor = Math.max(0, pulled - OVERLAP_MS);
+      let newest = pulled;
+      let received = 0;
+      while (true) {
+        const page = await this.rest<RemoteListeningRow[]>(
+          `listening_stats?device_id=neq.${encodeURIComponent(device)}&synced_at=gt.${cursor}&updated_at=gt.${after}&order=synced_at&limit=${PAGE}`,
+          token,
+        );
+        await listeningDb.upsertRemote(page.map((r) => ({
+          deviceId: r.device_id,
+          day: r.day,
+          feedUrl: r.feed_url,
+          guid: r.guid,
+          listenedMs: r.listened_ms,
+          contentMs: r.content_ms,
+          completed: r.completed,
+        })));
+        received += page.length;
+        for (const r of page) newest = Math.max(newest, r.synced_at ?? 0);
+        if (page.length < PAGE) break;
+        cursor = page[page.length - 1].synced_at ?? cursor;
+      }
+      await kv.set(K.statsPulledUntil, newest);
+      if (received) changed("listening");
+    } catch (e) {
+      if (!(e instanceof SupabaseError) || e.code !== 404) throw e;
     }
   }
 }

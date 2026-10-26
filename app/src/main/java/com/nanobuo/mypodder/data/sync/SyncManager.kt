@@ -2,6 +2,7 @@ package com.nanobuo.mypodder.data.sync
 
 import android.net.Uri
 import com.nanobuo.mypodder.data.db.AppDatabase
+import com.nanobuo.mypodder.data.db.RemoteListening
 import com.nanobuo.mypodder.data.repo.PodcastRepository
 import com.nanobuo.mypodder.playback.PlayerConnection
 import kotlinx.coroutines.CancellationException
@@ -58,6 +59,7 @@ class SyncManager @Inject constructor(
     private val podcastDao = db.podcastDao()
     private val episodeDao = db.episodeDao()
     private val queueDao = db.queueDao()
+    private val listeningDao = db.listeningDao()
 
     private val mutex = Mutex()
     private var pending: Job? = null
@@ -101,6 +103,7 @@ class SyncManager @Inject constructor(
                 pushStates(token)
                 pullStates(token, newFeeds)
                 syncQueue(token)
+                syncStats(token)
             }
             store.setLastSyncAt(System.currentTimeMillis())
             _status.value = SyncStatus.Idle
@@ -324,6 +327,77 @@ class SyncManager @Inject constructor(
                 api.upsertQueue(token, RemoteQueue(userId(), items, at))
                 store.setQueueUpdatedAt(at)
             }
+        }
+    }
+
+    // --- Statistiche ---
+
+    /** Azzeramento fatto su questo dispositivo: alla prossima sincronizzazione vale per tutti. */
+    suspend fun markStatsReset() {
+        store.setStatsResetPending(System.currentTimeMillis())
+    }
+
+    /** Annullamento dell'azzeramento: se non è ancora partito, resta solo locale. */
+    suspend fun cancelStatsReset() {
+        store.setStatsResetPending(0)
+        store.setStatsPulledUntil(0)
+        store.setStatsPushedUntil(0)
+    }
+
+    /**
+     * Ogni dispositivo carica i propri ascolti e scarica quelli degli altri: le statistiche ne
+     * mostrano la somma. Le tabelle mancanti (schema non aggiornato) non bloccano il resto.
+     */
+    private suspend fun syncStats(token: String) {
+        try {
+            val device = store.deviceId()
+            val pending = store.statsResetPending()
+            val remoteReset = api.statsReset(token)
+            if (pending > 0 && pending > remoteReset) {
+                api.resetStats(token, userId(), pending)
+                store.setStatsResetSeen(pending)
+                store.setStatsResetPending(0)
+            } else if (remoteReset > store.statsResetSeen()) {
+                // Statistiche azzerate da un altro dispositivo.
+                listeningDao.deleteUpTo(remoteReset)
+                listeningDao.clearRemote()
+                store.setStatsPulledUntil(0)
+                store.setStatsResetSeen(remoteReset)
+                store.setStatsResetPending(0)
+            }
+
+            val start = System.currentTimeMillis()
+            var since = store.statsPushedUntil()
+            val uid = userId()
+            while (true) {
+                val batch = listeningDao.changedSince(since, PAGE)
+                if (batch.isEmpty()) break
+                api.upsertListening(
+                    token,
+                    batch.map {
+                        RemoteListeningRow(uid, device, it.day, it.feedUrl, it.guid, it.listenedMs, it.contentMs, it.completed, it.updatedAt)
+                    },
+                )
+                since = batch.last().updatedAt
+                store.setStatsPushedUntil(minOf(since, start))
+                if (batch.size < PAGE) break
+            }
+
+            val after = store.statsResetSeen()
+            var cursor = (store.statsPulledUntil() - OVERLAP_MS).coerceAtLeast(0)
+            var newest = store.statsPulledUntil()
+            while (true) {
+                val page = api.listeningSince(token, device, cursor, after, PAGE)
+                listeningDao.upsertRemote(
+                    page.map { RemoteListening(it.deviceId, it.day, it.feedUrl, it.guid, it.listenedMs, it.contentMs, it.completed) }
+                )
+                page.forEach { newest = maxOf(newest, it.syncedAt) }
+                if (page.size < PAGE) break
+                cursor = page.last().syncedAt
+            }
+            store.setStatsPulledUntil(newest)
+        } catch (e: SupabaseException) {
+            if (e.code != 404) throw e
         }
     }
 

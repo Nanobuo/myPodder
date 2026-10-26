@@ -249,10 +249,10 @@ interface ChapterDao {
 @Dao
 interface ListeningDao {
     @Query(
-        """UPDATE listening SET listenedMs = listenedMs + :listenedMs, contentMs = contentMs + :contentMs
-           WHERE day = :day AND episodeId = :episodeId"""
+        """UPDATE listening SET listenedMs = listenedMs + :listenedMs, contentMs = contentMs + :contentMs,
+           updatedAt = :now WHERE day = :day AND episodeId = :episodeId"""
     )
-    suspend fun addTo(day: Long, episodeId: Long, listenedMs: Long, contentMs: Long): Int
+    suspend fun addTo(day: Long, episodeId: Long, listenedMs: Long, contentMs: Long, now: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(entry: ListeningEntry): Long
@@ -260,8 +260,9 @@ interface ListeningDao {
     /** Somma il tempo all'eventuale riga esistente (senza UPSERT, non disponibile su API 26). */
     @Transaction
     suspend fun add(day: Long, episodeId: Long, podcastId: Long, listenedMs: Long, contentMs: Long) {
-        if (addTo(day, episodeId, listenedMs, contentMs) == 0) {
-            insert(ListeningEntry(day, episodeId, podcastId, listenedMs, contentMs))
+        val now = System.currentTimeMillis()
+        if (addTo(day, episodeId, listenedMs, contentMs, now) == 0) {
+            insert(ListeningEntry(day, episodeId, podcastId, listenedMs, contentMs, updatedAt = now))
         }
     }
 
@@ -269,37 +270,65 @@ interface ListeningDao {
     suspend fun getAll(): List<ListeningEntry>
 
     @Query("DELETE FROM listening")
-    suspend fun clearAll()
+    suspend fun clearLocal()
+
+    @Query("DELETE FROM remote_listening")
+    suspend fun clearRemote()
+
+    /** Azzera le statistiche: quelle di questo dispositivo e quelle scaricate dagli altri. */
+    @Transaction
+    suspend fun clearAll() {
+        clearLocal()
+        clearRemote()
+    }
+
+    @Query("DELETE FROM listening WHERE updatedAt <= :until")
+    suspend fun deleteUpTo(until: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRemote(rows: List<RemoteListening>)
+
+    @Query(
+        """SELECT l.day, p.feedUrl, e.guid, l.listenedMs, l.contentMs, l.completed, l.updatedAt
+           FROM listening l JOIN episodes e ON e.id = l.episodeId JOIN podcasts p ON p.id = e.podcastId
+           WHERE l.updatedAt > :since ORDER BY l.updatedAt LIMIT :limit"""
+    )
+    suspend fun changedSince(since: Long, limit: Int): List<ListeningSyncRow>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<ListeningEntry>)
 
-    @Query("UPDATE listening SET completed = 1 WHERE day = :day AND episodeId = :episodeId")
-    suspend fun markCompletedRow(day: Long, episodeId: Long): Int
+    @Query("UPDATE listening SET completed = 1, updatedAt = :now WHERE day = :day AND episodeId = :episodeId")
+    suspend fun markCompletedRow(day: Long, episodeId: Long, now: Long): Int
 
     @Transaction
     suspend fun markCompleted(day: Long, episodeId: Long, podcastId: Long) {
-        if (markCompletedRow(day, episodeId) == 0) {
-            insert(ListeningEntry(day, episodeId, podcastId, 0, 0, completed = true))
+        val now = System.currentTimeMillis()
+        if (markCompletedRow(day, episodeId, now) == 0) {
+            insert(ListeningEntry(day, episodeId, podcastId, 0, 0, completed = true, updatedAt = now))
         }
     }
 
     @Query(
         """SELECT COALESCE(SUM(listenedMs), 0) AS listenedMs, COALESCE(SUM(contentMs), 0) AS contentMs,
-           COALESCE(SUM(completed), 0) AS completed FROM listening WHERE day >= :fromDay"""
+           COALESCE(SUM(completed), 0) AS completed FROM (SELECT day, listenedMs, contentMs, completed FROM listening UNION ALL SELECT day, listenedMs, contentMs, completed FROM remote_listening) WHERE day >= :fromDay"""
     )
     fun observeTotals(fromDay: Long): Flow<StatsTotals>
 
-    @Query("SELECT day, SUM(listenedMs) AS listenedMs FROM listening WHERE day >= :fromDay GROUP BY day ORDER BY day")
+    // Le statistiche sommano gli ascolti di questo dispositivo e quelli sincronizzati dagli altri.
+    @Query("SELECT day, SUM(listenedMs) AS listenedMs FROM (SELECT day, listenedMs, contentMs, completed FROM listening UNION ALL SELECT day, listenedMs, contentMs, completed FROM remote_listening) WHERE day >= :fromDay GROUP BY day ORDER BY day")
     fun observeDays(fromDay: Long): Flow<List<DayTotal>>
 
-    @Query("SELECT day FROM listening GROUP BY day HAVING SUM(listenedMs) >= :minMs ORDER BY day DESC")
+    @Query("SELECT day FROM (SELECT day, listenedMs, contentMs, completed FROM listening UNION ALL SELECT day, listenedMs, contentMs, completed FROM remote_listening) GROUP BY day HAVING SUM(listenedMs) >= :minMs ORDER BY day DESC")
     fun observeActiveDays(minMs: Long): Flow<List<Long>>
 
     @Query(
-        """SELECT l.podcastId AS podcastId, p.title AS title, p.imageUrl AS imageUrl, SUM(l.listenedMs) AS listenedMs
-           FROM listening l JOIN podcasts p ON p.id = l.podcastId WHERE l.day >= :fromDay
-           GROUP BY l.podcastId ORDER BY listenedMs DESC LIMIT :limit"""
+        """SELECT t.podcastId AS podcastId, p.title AS title, p.imageUrl AS imageUrl, SUM(t.listenedMs) AS listenedMs
+           FROM (SELECT podcastId, day, listenedMs FROM listening
+                 UNION ALL SELECT p2.id AS podcastId, r.day, r.listenedMs FROM remote_listening r
+                 JOIN podcasts p2 ON p2.feedUrl = r.feedUrl) t
+           JOIN podcasts p ON p.id = t.podcastId WHERE t.day >= :fromDay
+           GROUP BY t.podcastId ORDER BY listenedMs DESC LIMIT :limit"""
     )
     fun observeTopPodcasts(fromDay: Long, limit: Int): Flow<List<PodcastTotal>>
 }

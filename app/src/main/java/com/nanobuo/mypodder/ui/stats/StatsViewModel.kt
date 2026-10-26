@@ -6,6 +6,7 @@ import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.db.DayTotal
 import kotlinx.coroutines.launch
 import com.nanobuo.mypodder.data.db.ListeningEntry
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.data.db.PodcastTotal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,7 +43,7 @@ data class StatsUi(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class StatsViewModel @Inject constructor(db: AppDatabase) : ViewModel() {
+class StatsViewModel @Inject constructor(db: AppDatabase, private val sync: SyncManager) : ViewModel() {
     private val dao = db.listeningDao()
 
     private val _period = MutableStateFlow(StatsPeriod.DAY)
@@ -56,13 +57,20 @@ class StatsViewModel @Inject constructor(db: AppDatabase) : ViewModel() {
             val current = dao.getAll()
             if (current.isNotEmpty()) backup = current
             dao.clearAll()
+            sync.markStatsReset()
         }
     }
 
     fun undoReset() {
         val entries = backup
         backup = emptyList()
-        if (entries.isNotEmpty()) viewModelScope.launch { dao.insertAll(entries) }
+        viewModelScope.launch {
+            // I dati ripristinati tornano "modificati" per essere ricaricati sul server.
+            val now = System.currentTimeMillis()
+            if (entries.isNotEmpty()) dao.insertAll(entries.map { it.copy(updatedAt = now) })
+            sync.cancelStatsReset()
+            sync.requestSync()
+        }
     }
 
     fun setPeriod(p: StatsPeriod) {

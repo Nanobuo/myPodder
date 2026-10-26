@@ -38,6 +38,31 @@ create table if not exists public.queue_state (
     synced_at  bigint not null default 0
 );
 
+-- Statistiche: ogni dispositivo carica i propri ascolti (per giorno ed episodio), le app ne
+-- mostrano la somma. stats_reset segna l'ultimo azzeramento, valido per tutti i dispositivi.
+create table if not exists public.listening_stats (
+    user_id     uuid    not null default auth.uid() references auth.users on delete cascade,
+    device_id   text    not null,
+    day         bigint  not null,
+    feed_url    text    not null,
+    guid        text    not null,
+    listened_ms bigint  not null default 0,
+    content_ms  bigint  not null default 0,
+    completed   boolean not null default false,
+    updated_at  bigint  not null,
+    synced_at   bigint  not null default 0,
+    primary key (user_id, device_id, day, feed_url, guid)
+);
+
+create index if not exists listening_stats_synced on public.listening_stats (user_id, synced_at);
+
+create table if not exists public.stats_reset (
+    user_id    uuid   primary key default auth.uid() references auth.users on delete cascade,
+    reset_at   bigint not null,
+    updated_at bigint not null,
+    synced_at  bigint not null default 0
+);
+
 -- Ignora le modifiche più vecchie di quella salvata e segna l'ora di salvataggio.
 create or replace function public.keep_latest() returns trigger
 language plpgsql set search_path = '' as $$
@@ -59,10 +84,18 @@ create trigger keep_latest before insert or update on public.episode_states
 drop trigger if exists keep_latest on public.queue_state;
 create trigger keep_latest before insert or update on public.queue_state
     for each row execute function public.keep_latest();
+drop trigger if exists keep_latest on public.listening_stats;
+create trigger keep_latest before insert or update on public.listening_stats
+    for each row execute function public.keep_latest();
+drop trigger if exists keep_latest on public.stats_reset;
+create trigger keep_latest before insert or update on public.stats_reset
+    for each row execute function public.keep_latest();
 
 alter table public.subscriptions  enable row level security;
 alter table public.episode_states enable row level security;
 alter table public.queue_state    enable row level security;
+alter table public.listening_stats enable row level security;
+alter table public.stats_reset    enable row level security;
 
 drop policy if exists "own rows" on public.subscriptions;
 create policy "own rows" on public.subscriptions for all to authenticated
@@ -73,9 +106,17 @@ create policy "own rows" on public.episode_states for all to authenticated
 drop policy if exists "own rows" on public.queue_state;
 create policy "own rows" on public.queue_state for all to authenticated
     using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "own rows" on public.listening_stats;
+create policy "own rows" on public.listening_stats for all to authenticated
+    using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "own rows" on public.stats_reset;
+create policy "own rows" on public.stats_reset for all to authenticated
+    using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
-grant select, insert, update, delete on public.subscriptions, public.episode_states, public.queue_state to authenticated;
-revoke all on public.subscriptions, public.episode_states, public.queue_state from anon;
+grant select, insert, update, delete on public.subscriptions, public.episode_states, public.queue_state,
+    public.listening_stats, public.stats_reset to authenticated;
+revoke all on public.subscriptions, public.episode_states, public.queue_state,
+    public.listening_stats, public.stats_reset from anon;
 
 -- Elimina l'account di chi la chiama e, a cascata, tutti i suoi dati sincronizzati.
 create or replace function public.delete_account() returns void

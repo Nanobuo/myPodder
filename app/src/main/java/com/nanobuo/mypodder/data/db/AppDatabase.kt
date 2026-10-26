@@ -6,8 +6,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class],
-    version = 3,
+    entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class, RemoteListening::class],
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,6 +27,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "UPDATE episodes SET stateUpdatedAt = MAX(lastPlayedAt, COALESCE(completedAt, 0)) " +
                         "WHERE positionMs > 0 OR completed = 1"
+                )
+            }
+        }
+
+        /** v4: statistiche sincronizzate (data di modifica e ascolti degli altri dispositivi). */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1: le statistiche già presenti vengono caricate alla prima sincronizzazione.
+                db.execSQL("ALTER TABLE listening ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 1")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS remote_listening (deviceId TEXT NOT NULL, day INTEGER NOT NULL, " +
+                        "feedUrl TEXT NOT NULL, guid TEXT NOT NULL, listenedMs INTEGER NOT NULL, contentMs INTEGER NOT NULL, " +
+                        "completed INTEGER NOT NULL, PRIMARY KEY(deviceId, day, feedUrl, guid))"
                 )
             }
         }

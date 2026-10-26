@@ -3,6 +3,7 @@
   import { epochDay, formatDuration } from "../lib/format.ts";
   import { locale, t } from "../lib/i18n.ts";
   import { nav, snackbar, versions, changed } from "../lib/store.svelte.ts";
+  import { sync } from "../lib/sync.svelte.ts";
   import Button from "../components/Button.svelte";
   import Cover from "../components/Cover.svelte";
   import Dialog from "../components/Dialog.svelte";
@@ -134,13 +135,16 @@
     confirmReset = false;
     backup = await listeningDb.all();
     await listeningDb.clear();
+    await sync.markStatsReset();
     changed("listening");
     snackbar.show(t("stats_reset_done"), {
       label: t("undo"),
       run: async () => {
         await listeningDb.restore(backup);
         backup = [];
+        await sync.cancelStatsReset();
         changed("listening");
+        sync.requestSync();
       },
     }, 8000);
   }

@@ -56,6 +56,27 @@ data class RemoteQueue(
 )
 
 @Serializable
+data class RemoteListeningRow(
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("device_id") val deviceId: String,
+    val day: Long,
+    @SerialName("feed_url") val feedUrl: String,
+    val guid: String,
+    @SerialName("listened_ms") val listenedMs: Long = 0,
+    @SerialName("content_ms") val contentMs: Long = 0,
+    val completed: Boolean = false,
+    @SerialName("updated_at") val updatedAt: Long = 0,
+    @SerialName("synced_at") val syncedAt: Long = 0,
+)
+
+@Serializable
+data class RemoteStatsReset(
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("reset_at") val resetAt: Long,
+    @SerialName("updated_at") val updatedAt: Long,
+)
+
+@Serializable
 private data class AuthUser(val id: String, val email: String? = null)
 
 @Serializable
@@ -198,6 +219,40 @@ class SupabaseApi @Inject constructor(
 
     suspend fun upsertQueue(token: String, queue: RemoteQueue) =
         upsert(token, "queue_state", "user_id", json.encodeToString(listOf(queue)))
+
+    // --- Statistiche ---
+
+    suspend fun upsertListening(token: String, rows: List<RemoteListeningRow>) {
+        if (rows.isNotEmpty()) upsert(token, "listening_stats", "user_id,device_id,day,feed_url,guid", json.encodeToString(rows))
+    }
+
+    /** Ascolti degli altri dispositivi salvati sul server dopo [since], successivi all'ultimo azzeramento. */
+    suspend fun listeningSince(token: String, deviceId: String, since: Long, after: Long, limit: Int): List<RemoteListeningRow> =
+        json.decodeFromString(
+            call(
+                get(
+                    rest("listening_stats") {
+                        addQueryParameter("device_id", "neq.$deviceId")
+                        addQueryParameter("synced_at", "gt.$since")
+                        addQueryParameter("updated_at", "gt.$after")
+                        addQueryParameter("order", "synced_at")
+                        addQueryParameter("limit", limit.toString())
+                    },
+                    token,
+                )
+            )
+        )
+
+    suspend fun statsReset(token: String): Long =
+        json.decodeFromString<List<RemoteStatsReset>>(call(get(rest("stats_reset") { addQueryParameter("select", "reset_at,updated_at") }, token)))
+            .firstOrNull()?.resetAt ?: 0
+
+    /** Azzera le statistiche su tutti i dispositivi: segna l'istante e toglie dal server le righe precedenti. */
+    suspend fun resetStats(token: String, userId: String, at: Long) {
+        upsert(token, "stats_reset", "user_id", json.encodeToString(listOf(RemoteStatsReset(userId, at, at))))
+        val url = rest("listening_stats") { addQueryParameter("updated_at", "lte.$at") }
+        call(Request.Builder().url(url).delete().auth(token).build())
+    }
 
     // --- HTTP ---
 

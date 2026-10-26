@@ -38,9 +38,11 @@ class AppState {
       await win.onFocusChanged(({ payload: focused }) => {
         if (focused) this.onForeground();
       });
+      // Salva posizione e impostazioni prima di chiudere; un errore o un'attesa lunga non devono
+      // impedire la chiusura (dopo il gestore Tauri chiude la finestra con destroy()).
       await win.onCloseRequested(async () => {
-        await player.shutdown();
-        await flushSettings();
+        const save = Promise.allSettled([player.shutdown(), flushSettings()]);
+        await Promise.race([save, new Promise((r) => setTimeout(r, 1500))]);
       });
     }
     this.onForeground();

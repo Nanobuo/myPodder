@@ -40,9 +40,14 @@ class AppState {
       });
       // Salva posizione e impostazioni prima di chiudere; un errore o un'attesa lunga non devono
       // impedire la chiusura (dopo il gestore Tauri chiude la finestra con destroy()).
+      // Prima di chiudere salva posizione e impostazioni e sincronizza, così l'ascolto prosegue
+      // dagli altri dispositivi; al massimo qualche secondo, poi la finestra si chiude comunque.
       await win.onCloseRequested(async () => {
-        const save = Promise.allSettled([player.shutdown(), flushSettings()]);
-        await Promise.race([save, new Promise((r) => setTimeout(r, 1500))]);
+        const save = (async () => {
+          await Promise.allSettled([player.shutdown(), flushSettings()]);
+          if (sync.session) await sync.syncNow();
+        })();
+        await Promise.race([save, new Promise((r) => setTimeout(r, 4000))]);
       });
     }
     this.onForeground();

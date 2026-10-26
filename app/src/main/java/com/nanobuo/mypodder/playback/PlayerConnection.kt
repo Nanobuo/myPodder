@@ -72,7 +72,7 @@ class PlayerConnection @Inject constructor(
             controller = c
             c.addListener(listener)
             update()
-            restoreIfIdle(c)
+            if (c.mediaItemCount == 0) restoreIfIdle(c) else reconcile()
             pending.toList().forEach { it(c) }
             pending.clear()
         }, ContextCompat.getMainExecutor(context))
@@ -162,14 +162,30 @@ class PlayerConnection @Inject constructor(
     }
 
     /**
-     * Posizioni arrivate dalla sincronizzazione: se l'episodio è caricato ma fermo, il player si
-     * sposta lì, così Play riprende da dove si era arrivati sull'altro dispositivo.
+     * Allinea il player fermo al database dopo una sincronizzazione o al ritorno nell'app: carica
+     * l'ultimo episodio ascoltato (anche su un altro dispositivo) e si sposta alla posizione salvata,
+     * così Play riprende da dove si era arrivati. Durante l'ascolto non fa nulla.
      */
-    fun onRemotePositions(positions: Map<Long, Long>) {
+    fun reconcile() {
         val c = controller ?: return
-        val id = c.currentMediaItem?.mediaId?.toLongOrNull() ?: return
-        val position = positions[id] ?: return
-        if (!c.isPlaying && !c.playWhenReady) c.seekTo(position)
+        if (c.isPlaying || c.playWhenReady) return
+        val currentId = c.currentMediaItem?.mediaId?.toLongOrNull()
+        val playerPosition = c.currentPosition
+        appScope.launch {
+            val latest = episodes.lastPlayed()
+            val current = currentId?.let { episodes.get(it) }
+            withContext(Dispatchers.Main) {
+                if (controller !== c || c.isPlaying || c.playWhenReady) return@withContext
+                if (c.currentMediaItem?.mediaId?.toLongOrNull() != currentId) return@withContext
+                val newer = latest != null && latest.episode.id != currentId &&
+                    latest.episode.lastPlayedAt > (current?.episode?.lastPlayedAt ?: 0)
+                when {
+                    newer -> c.setMediaItem(MediaItem.Builder().setMediaId(latest!!.episode.id.toString()).build())
+                    current != null && !current.episode.completed &&
+                        kotlin.math.abs(current.episode.positionMs - playerPosition) > 2_000 -> c.seekTo(current.episode.positionMs)
+                }
+            }
+        }
     }
 
     private fun update() {

@@ -449,11 +449,8 @@ class SyncManager {
       const rows = await this.rest<RemoteEpisodeState[]>(`episode_states?feed_url=eq.${encodeURIComponent(feed)}`, token);
       for (const row of rows) await this.apply(row, changedPositions);
     }
-    if (changedPositions.size) {
-      changed("episodes");
-      player.onRemotePositions(changedPositions);
-      await player.refreshCurrent();
-    }
+    if (changedPositions.size) changed("episodes");
+    await player.reconcile();
   }
 
   /** Applica uno stato remoto se più recente; false se l'episodio non esiste qui. */

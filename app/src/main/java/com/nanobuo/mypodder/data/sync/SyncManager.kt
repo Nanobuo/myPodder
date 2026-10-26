@@ -297,7 +297,7 @@ class SyncManager @Inject constructor(
         }
         store.setPulledUntil(heldBack?.let { minOf(it - 1, newest) } ?: newest)
         for (feed in newFeeds) api.episodeStatesFor(token, feed).forEach { apply(it, changed) }
-        if (changed.isNotEmpty()) withContext(Dispatchers.Main) { player.onRemotePositions(changed) }
+        withContext(Dispatchers.Main) { player.reconcile() }
     }
 
     /** Applica uno stato remoto se più recente; false se l'episodio non esiste su questo dispositivo. */

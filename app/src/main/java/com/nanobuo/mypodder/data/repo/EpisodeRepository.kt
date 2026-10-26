@@ -30,6 +30,7 @@ class EpisodeRepository @Inject constructor(
     fun forPodcast(podcastId: Long) = episodeDao.observeForPodcast(podcastId)
     fun observe(id: Long) = episodeDao.observeItem(id)
     suspend fun get(id: Long) = episodeDao.getItem(id)
+    suspend fun lastPlayed() = episodeDao.lastPlayed()
 
     // Le modifiche alla coda fatte qui sono dell'utente: la versione locale diventa la più recente.
     suspend fun addToQueue(id: Long) = queueChange { queueDao.addLast(listOf(id)) }

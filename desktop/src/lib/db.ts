@@ -254,6 +254,11 @@ export const episodesDb = {
     return (await select(`${EPISODE_ITEM} WHERE e.lastPlayedAt > 0 ORDER BY e.lastPlayedAt DESC LIMIT ?`, [limit])).map(toEpisode<EpisodeItem>);
   },
   clearHistory: () => execute("UPDATE episodes SET lastPlayedAt = 0"),
+  /** Ultimo episodio non finito ascoltato, qui o su un altro dispositivo. */
+  async lastPlayed(): Promise<EpisodeItem | null> {
+    return (await select(`${EPISODE_ITEM} WHERE e.completed = 0 AND e.lastPlayedAt > 0 ORDER BY e.lastPlayedAt DESC LIMIT 1`))
+      .map(toEpisode<EpisodeItem>)[0] ?? null;
+  },
   async item(id: number): Promise<EpisodeItem | null> {
     return (await select(`${EPISODE_ITEM} WHERE e.id = ?`, [id])).map(toEpisode<EpisodeItem>)[0] ?? null;
   },

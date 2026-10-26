@@ -67,6 +67,10 @@ interface EpisodeDao {
     @Query("$EPISODE_ITEM WHERE e.lastPlayedAt > 0 ORDER BY e.lastPlayedAt DESC LIMIT :limit")
     fun observeHistory(limit: Int): Flow<List<EpisodeItem>>
 
+    /** Ultimo episodio non finito ascoltato, su questo o su un altro dispositivo. */
+    @Query("$EPISODE_ITEM WHERE e.completed = 0 AND e.lastPlayedAt > 0 ORDER BY e.lastPlayedAt DESC LIMIT 1")
+    suspend fun lastPlayed(): EpisodeItem?
+
     @Query("UPDATE episodes SET lastPlayedAt = 0")
     suspend fun clearHistory()
 

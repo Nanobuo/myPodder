@@ -87,6 +87,12 @@ class PlaybackService : MediaSessionService() {
     private var lastTickElapsed = 0L
     private var lastTickPosition = 0L
     private var lastFlush = 0L
+    /**
+     * true se la posizione è cambiata per un ascolto o un salto fatto qui: solo allora va salvata.
+     * Salvare una posizione non toccata la renderebbe "più recente" di quella arrivata da un altro
+     * dispositivo e la sincronizzazione la riporterebbe indietro.
+     */
+    private var positionDirty = false
 
     override fun onCreate() {
         super.onCreate()
@@ -154,12 +160,13 @@ class PlaybackService : MediaSessionService() {
         val listened = pendingListenedMs
         val content = pendingContentMs
         val ended = player.playbackState == Player.STATE_ENDED
+        val dirty = positionDirty
         appScope.launch {
             ep ?: return@launch
             if (listened > 0) {
                 db.listeningDao().add(today(), ep.episode.id, ep.episode.podcastId, listened, content)
             }
-            if (!ended) episodes.savePosition(ep.episode.id, position)
+            if (!ended && dirty) episodes.savePosition(ep.episode.id, position)
         }
         shake.stop()
         session?.release()
@@ -309,6 +316,9 @@ class PlaybackService : MediaSessionService() {
             newPosition: Player.PositionInfo,
             reason: Int,
         ) {
+            // Un salto durante l'ascolto è dell'utente; da fermo può essere l'allineamento con un
+            // altro dispositivo, che non va salvato come modifica di questo.
+            if (reason == Player.DISCONTINUITY_REASON_SEEK && current != null && player.playWhenReady) positionDirty = true
             lastTickPosition = newPosition.positionMs
             updateChapterArtwork()
         }
@@ -328,6 +338,7 @@ class PlaybackService : MediaSessionService() {
         chaptersJob?.cancel()
         currentChapters = emptyList()
         current = null
+        positionDirty = false
         scope.launch {
             if (previous != null && listened > 0) {
                 db.listeningDao().add(today(), previous.episode.id, previous.episode.podcastId, listened, content)
@@ -373,6 +384,7 @@ class PlaybackService : MediaSessionService() {
     // --- Avanzamento: statistiche, posizione, immagini dei capitoli ---
 
     private fun startTicker() {
+        positionDirty = true
         tickJob?.cancel()
         lastTickElapsed = SystemClock.elapsedRealtime()
         lastTickPosition = player.currentPosition
@@ -410,8 +422,10 @@ class PlaybackService : MediaSessionService() {
             pendingContentMs = 0
             db.listeningDao().add(today(), item.episode.id, item.episode.podcastId, listened, content)
         }
-        if (savePosition && player.playbackState != Player.STATE_ENDED && player.currentMediaItem != null) {
+        if (savePosition && positionDirty && player.playbackState != Player.STATE_ENDED && player.currentMediaItem != null) {
             episodes.savePosition(item.episode.id, player.currentPosition)
+            // Finché si ascolta la posizione continua a cambiare; in pausa resta salvata così.
+            positionDirty = player.isPlaying
         }
     }
 

@@ -44,6 +44,12 @@ class Player {
   private contentMs = 0;
   private lastFlush = 0;
   private loadSeq = 0;
+  /**
+   * true se la posizione è cambiata per un ascolto o un salto fatto qui: solo allora va salvata.
+   * Salvare una posizione non toccata la renderebbe "più recente" di quella arrivata da un altro
+   * dispositivo e la sincronizzazione la riporterebbe indietro.
+   */
+  private positionDirty = false;
 
   constructor() {
     const a = this.audio;
@@ -123,6 +129,7 @@ class Player {
     const item = await episodesDb.item(id);
     if (!item || seq !== this.loadSeq) return;
     await this.flush();
+    this.positionDirty = false;
     this.current = item;
     this.error = false;
     this.position = opts.startMs ?? this.resumePosition(item);
@@ -168,6 +175,12 @@ class Player {
   }
 
   seekTo(ms: number) {
+    if (this.current) this.positionDirty = true;
+    this.moveTo(ms);
+  }
+
+  /** Sposta il player senza considerarlo una modifica dell'utente (allineamento con il database). */
+  private moveTo(ms: number) {
     const target = Math.max(0, this.duration > 0 ? Math.min(ms, this.duration - 500) : ms);
     this.position = target;
     if (this.audio.readyState >= 1) this.audio.currentTime = target / 1000;
@@ -213,6 +226,7 @@ class Player {
     this.isPlaying = playing;
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = playing ? "playing" : "paused";
     if (playing) {
+      this.positionDirty = true;
       this.lastTickWall = performance.now();
       this.lastTickPos = this.audio.currentTime * 1000;
       this.tick ??= setInterval(() => {
@@ -256,8 +270,10 @@ class Player {
       await listeningDb.add(epochDay(), item.id, item.podcastId, listened, content);
       changed("listening");
     }
-    if (savePosition && !this.audio.ended && this.audio.readyState >= 1 && this.pendingSeek == null) {
+    if (savePosition && this.positionDirty && !this.audio.ended && this.audio.readyState >= 1 && this.pendingSeek == null) {
       await repo.savePosition(item.id, this.audio.currentTime * 1000);
+      // Finché si ascolta la posizione continua a cambiare; in pausa resta salvata così.
+      this.positionDirty = this.isPlaying;
     }
   }
 
@@ -280,11 +296,23 @@ class Player {
     await this.load(next, { autoplay: !stopHere });
   }
 
-  /** Posizioni arrivate dalla sincronizzazione: se l'episodio è caricato ma fermo, si sposta lì. */
-  onRemotePositions(positions: Map<number, number>) {
-    const id = this.current?.id;
-    if (id == null || !positions.has(id) || this.isPlaying) return;
-    this.seekTo(positions.get(id)!);
+  /**
+   * Allinea il player fermo al database dopo una sincronizzazione: carica l'ultimo episodio
+   * ascoltato (anche su un altro dispositivo) e si sposta alla posizione salvata, così Play
+   * riprende da dove si era arrivati. Durante l'ascolto non fa nulla.
+   */
+  async reconcile() {
+    if (this.isPlaying || this.positionDirty) return;
+    const latest = await episodesDb.lastPlayed();
+    const current = this.current ? await episodesDb.item(this.current.id) : null;
+    if (this.isPlaying || this.positionDirty) return;
+    if (latest && latest.id !== current?.id && latest.lastPlayedAt > (current?.lastPlayedAt ?? 0)) {
+      await this.load(latest.id, { autoplay: false });
+      return;
+    }
+    if (!current) return;
+    this.current = current;
+    if (!current.completed && Math.abs(current.positionMs - this.position) > 2000) this.moveTo(current.positionMs);
   }
 
   /** Aggiorna i dati dell'episodio corrente dopo una modifica (es. segnato come ascoltato). */

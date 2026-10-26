@@ -31,10 +31,11 @@ sealed interface SyncStatus {
 sealed interface LoginState {
     data object Idle : LoginState
     data object Sending : LoginState
+    data object SigningIn : LoginState
     data class CodeSent(val email: String) : LoginState
     data class Verifying(val email: String) : LoginState
     /** [email] presente se l'errore è nella verifica del codice (si resta su quel passo). */
-    data class Error(val message: String, val email: String? = null) : LoginState
+    data class Error(val message: String, val email: String? = null, val wrongPassword: Boolean = false) : LoginState
 }
 
 /**
@@ -130,6 +131,20 @@ class SyncManager @Inject constructor(
                 .onFailure { _login.value = LoginState.Error(it.message.orEmpty(), email) }
         }
     }
+
+    fun signInWithPassword(email: String, password: String) {
+        _login.value = LoginState.SigningIn
+        appScope.launch {
+            runCatching { api.signInWithPassword(email.trim(), password) }
+                .onSuccess { signedIn(it) }
+                .onFailure {
+                    _login.value = LoginState.Error(it.message.orEmpty(), wrongPassword = it is SupabaseException && it.code == 400)
+                }
+        }
+    }
+
+    /** Imposta la password dell'account: poi si accede subito dagli altri dispositivi, senza email. */
+    suspend fun setPassword(password: String): Result<Unit> = runCatching { authorized { api.setPassword(it, password) } }
 
     /** Link dell'email: myPodder://login#access_token=…&refresh_token=…&expires_in=… */
     fun handleLoginLink(uri: Uri) {

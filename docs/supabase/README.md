@@ -25,6 +25,16 @@ sostituirli con le variabili `SUPABASE_URL` e `SUPABASE_KEY`, da Secrets o da `l
 La chiave pubblicabile è pensata per stare nelle app: ogni utente vede solo i propri dati grazie
 alla Row Level Security.
 
+## Accesso
+
+- **Link via email**: il primo accesso. Il servizio email integrato di Supabase è pensato per le
+  prove e può impiegare anche alcuni minuti.
+- **Password**: una volta collegato un dispositivo, da *Impostazioni → Sincronizzazione →
+  Password* imposti una password. Poi sugli altri dispositivi inserisci email e password e accedi
+  subito, senza email.
+- Per email più rapide si può configurare un SMTP proprio (*Authentication → Emails → SMTP
+  Settings*), ad esempio Brevo o Resend con un piano gratuito.
+
 ## Come funziona
 
 - **Iscrizioni**: fusione a tre vie tra l'elenco locale, quello sul server e quello presente

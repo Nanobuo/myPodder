@@ -260,7 +260,7 @@
     <string name="settings_sync">Sync</string>
     <string name="sync_sign_in">Sign in to sync</string>
     <string name="sync_sign_in_summary">Subscriptions, episode progress and queue on all your devices</string>
-    <string name="sync_email_hint">Enter your email: you will receive a sign-in link. No password needed, and an account is created automatically the first time.</string>
+    <string name="sync_email_hint">Enter your email: you will receive a sign-in link. If you set a password, type it to sign in right away. An account is created automatically the first time.</string>
     <string name="sync_email">Email</string>
     <string name="sync_send_code">Send link</string>
     <string name="sync_code_hint">We sent an email to %s. Open it on this phone and tap the link: the app reopens already signed in. If the email contains a code, you can also enter it here.</string>
@@ -280,4 +280,13 @@
     <string name="sync_delete_account_summary">Removes the account and all synced data from the server</string>
     <string name="sync_delete_account_confirm">The account and everything synced will be deleted from the server. Data on this phone stays. This cannot be undone.</string>
     <string name="delete">Delete</string>
+    <string name="sync_password_optional">Password (if you set one)</string>
+    <string name="sync_wrong_password">Wrong email or password</string>
+    <string name="sync_set_password">Password</string>
+    <string name="sync_set_password_summary">Set a password to sign in instantly on your other devices, without waiting for the email</string>
+    <string name="sync_password_hint">With a password you sign in instantly on a computer or other phones, with the same email. At least 8 characters.</string>
+    <string name="sync_password_new">New password</string>
+    <string name="sync_password_saved">Password saved</string>
+    <string name="sync_password_error">Could not save the password: %s</string>
+    <string name="save">Save</string>
 </resources>

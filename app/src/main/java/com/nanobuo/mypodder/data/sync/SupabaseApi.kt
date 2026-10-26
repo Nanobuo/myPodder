@@ -106,6 +106,22 @@ class SupabaseApi @Inject constructor(
         return session(call(post("$base/auth/v1/verify".toHttpUrl(), body.toString())), email)
     }
 
+    /** Accesso immediato con email e password (impostata in precedenza da un dispositivo collegato). */
+    suspend fun signInWithPassword(email: String, password: String): SyncSession {
+        val url = "$base/auth/v1/token".toHttpUrl().newBuilder().addQueryParameter("grant_type", "password").build()
+        val body = buildJsonObject {
+            put("email", email)
+            put("password", password)
+        }
+        return session(call(post(url, body.toString())), email)
+    }
+
+    /** Imposta o cambia la password dell'account collegato. */
+    suspend fun setPassword(token: String, password: String) {
+        val body = buildJsonObject { put("password", password) }
+        call(Request.Builder().url("$base/auth/v1/user").put(body.toString().toRequestBody(jsonType)).auth(token).build())
+    }
+
     suspend fun refresh(refreshToken: String, email: String): SyncSession {
         val url = "$base/auth/v1/token".toHttpUrl().newBuilder().addQueryParameter("grant_type", "refresh_token").build()
         val body = buildJsonObject { put("refresh_token", refreshToken) }

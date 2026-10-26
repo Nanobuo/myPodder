@@ -26,10 +26,11 @@ export type SyncStatus = { kind: "idle" } | { kind: "running" } | { kind: "error
 export type LoginState =
   | { kind: "idle" }
   | { kind: "sending" }
+  | { kind: "signingIn" }
   | { kind: "sent"; email: string }
   | { kind: "verifying"; email: string }
   /** [email] presente se l'errore è nella verifica del codice (si resta su quel passo). */
-  | { kind: "error"; message: string; email?: string };
+  | { kind: "error"; message: string; email?: string; wrongPassword?: boolean };
 
 interface RemoteEpisodeState {
   user_id?: string;
@@ -188,6 +189,36 @@ class SyncManager {
       await this.signedIn(this.sessionFrom(body, email));
     } catch (e) {
       this.login = { kind: "error", message: e instanceof Error ? e.message : String(e), email };
+    }
+  }
+
+  /** Accesso immediato con email e password (impostata in precedenza da un dispositivo collegato). */
+  async signInWithPassword(email: string, password: string) {
+    this.login = { kind: "signingIn" };
+    try {
+      const body = await this.call("/auth/v1/token?grant_type=password", {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      await this.signedIn(this.sessionFrom(body, email.trim()));
+    } catch (e) {
+      this.login = {
+        kind: "error",
+        message: e instanceof Error ? e.message : String(e),
+        wrongPassword: e instanceof SupabaseError && e.code === 400,
+      };
+    }
+  }
+
+  /** Imposta la password dell'account: poi si accede subito dagli altri dispositivi, senza email. */
+  async setPassword(password: string): Promise<string | null> {
+    try {
+      await this.authorized((token) =>
+        this.call("/auth/v1/user", { method: "PUT", token, body: JSON.stringify({ password }) }),
+      );
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
     }
   }
 

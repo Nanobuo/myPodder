@@ -7,19 +7,42 @@
   import ListItem from "../components/ListItem.svelte";
   import Spinner from "../components/Spinner.svelte";
   import TextField from "../components/TextField.svelte";
+  import { snackbar } from "../lib/store.svelte.ts";
 
   let showLogin = $state(false);
   let confirmSignOut = $state(false);
   let confirmDelete = $state(false);
   let email = $state("");
   let code = $state("");
+  let password = $state("");
+  let showPassword = $state(false);
+  let newPassword = $state("");
+  let passwordError = $state<string | null>(null);
+  let savingPassword = $state(false);
+
+  async function savePassword() {
+    savingPassword = true;
+    passwordError = await sync.setPassword(newPassword);
+    savingPassword = false;
+    if (!passwordError) {
+      showPassword = false;
+      newPassword = "";
+      snackbar.show(t("sync_password_saved"));
+    }
+  }
+
+  function submitFirstStep() {
+    if (!validEmail || busy) return;
+    if (password) void sync.signInWithPassword(email, password);
+    else void sync.sendLink(email);
+  }
 
   const login = $derived(sync.login);
   // Dopo l'invio si resta sul passo del codice, anche se la verifica fallisce.
   const sentTo = $derived(
     login.kind === "sent" || login.kind === "verifying" ? login.email : login.kind === "error" ? (login.email ?? null) : null,
   );
-  const busy = $derived(login.kind === "sending" || login.kind === "verifying");
+  const busy = $derived(login.kind === "sending" || login.kind === "verifying" || login.kind === "signingIn");
   const validEmail = $derived(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()));
 
   // Accesso completato dal link: la finestra si chiude da sola.
@@ -48,6 +71,7 @@
   <ListItem headline={t("sync_now")} supporting={statusText} icon="sync" disabled={sync.status.kind === "running"} onclick={() => sync.syncNow()}>
     {#snippet trailing()}{#if sync.status.kind === "running"}<Spinner size={24} />{/if}{/snippet}
   </ListItem>
+  <ListItem headline={t("sync_set_password")} supporting={t("sync_set_password_summary")} icon="password" onclick={() => (showPassword = true)} />
   <ListItem headline={t("sync_sign_out")} icon="logout" onclick={() => (confirmSignOut = true)} />
   <ListItem headline={t("sync_delete_account")} supporting={t("sync_delete_account_summary")} icon="delete_forever" onclick={() => (confirmDelete = true)} />
 {/if}
@@ -57,22 +81,39 @@
     <div class="form">
       {#if sentTo == null}
         <p>{t("sync_email_hint")}</p>
-        <TextField bind:value={email} label={t("sync_email")} type="email" icon="mail" autofocus disabled={busy} onenter={() => validEmail && sync.sendLink(email)} />
+        <TextField bind:value={email} label={t("sync_email")} type="email" icon="mail" autofocus disabled={busy} onenter={submitFirstStep} />
+        <TextField bind:value={password} label={t("sync_password_optional")} type="password" icon="key" disabled={busy} onenter={submitFirstStep} />
       {:else}
         <p>{t("sync_code_hint", sentTo)}</p>
         <TextField bind:value={code} label={t("sync_code")} icon="pin" disabled={busy} onenter={() => code.length >= 6 && sync.verifyCode(sentTo, code)} />
       {/if}
-      {#if login.kind === "error"}<p class="error body-small">{t("sync_login_error", login.message)}</p>{/if}
+      {#if login.kind === "error"}
+        <p class="error body-small">{login.wrongPassword ? t("sync_wrong_password") : t("sync_login_error", login.message)}</p>
+      {/if}
       {#if busy}<div class="busy"><Spinner size={28} /></div>{/if}
     </div>
     {#snippet actions()}
       {#if sentTo == null}
         <Button variant="text" onclick={closeLogin}>{t("cancel")}</Button>
-        <Button disabled={!validEmail || busy} onclick={() => sync.sendLink(email)}>{t("sync_send_code")}</Button>
+        <Button disabled={!validEmail || busy} onclick={submitFirstStep}>{password ? t("sync_verify") : t("sync_send_code")}</Button>
       {:else}
         <Button variant="text" disabled={busy} onclick={() => { code = ""; sync.resetLogin(); }}>{t("sync_change_email")}</Button>
         <Button disabled={code.replace(/\D/g, "").length < 6 || busy} onclick={() => sync.verifyCode(sentTo, code)}>{t("sync_verify")}</Button>
       {/if}
+    {/snippet}
+  </Dialog>
+{/if}
+
+{#if showPassword && sync.session}
+  <Dialog title={t("sync_set_password")} icon="password" onclose={() => (showPassword = false)}>
+    <div class="form">
+      <p>{t("sync_password_hint")}</p>
+      <TextField bind:value={newPassword} label={t("sync_password_new")} type="password" icon="key" autofocus disabled={savingPassword} onenter={() => newPassword.length >= 8 && savePassword()} />
+      {#if passwordError}<p class="error body-small">{t("sync_password_error", passwordError)}</p>{/if}
+    </div>
+    {#snippet actions()}
+      <Button variant="text" onclick={() => (showPassword = false)}>{t("cancel")}</Button>
+      <Button disabled={newPassword.length < 8 || savingPassword} onclick={savePassword}>{t("save")}</Button>
     {/snippet}
   </Dialog>
 {/if}

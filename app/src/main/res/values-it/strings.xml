@@ -257,7 +257,7 @@
     <string name="settings_sync">Sincronizzazione</string>
     <string name="sync_sign_in">Accedi per sincronizzare</string>
     <string name="sync_sign_in_summary">Iscrizioni, avanzamento degli episodi e coda su tutti i tuoi dispositivi</string>
-    <string name="sync_email_hint">Inserisci la tua email: riceverai un link per accedere. Niente password, e la prima volta l\'account viene creato da solo.</string>
+    <string name="sync_email_hint">Inserisci la tua email: riceverai un link per accedere. Se hai impostato una password, scrivila per accedere subito. La prima volta l\'account viene creato da solo.</string>
     <string name="sync_email">Email</string>
     <string name="sync_send_code">Invia link</string>
     <string name="sync_code_hint">Abbiamo inviato un\'email a %s. Aprila su questo telefono e tocca il link: l\'app si riapre già collegata. Se l\'email contiene un codice, puoi anche inserirlo qui.</string>
@@ -277,4 +277,13 @@
     <string name="sync_delete_account_summary">Rimuove l\'account e tutti i dati sincronizzati dal server</string>
     <string name="sync_delete_account_confirm">L\'account e tutto ciò che è sincronizzato verranno eliminati dal server. I dati su questo telefono restano. L\'operazione non si può annullare.</string>
     <string name="delete">Elimina</string>
+    <string name="sync_password_optional">Password (se l\'hai impostata)</string>
+    <string name="sync_wrong_password">Email o password non corretti</string>
+    <string name="sync_set_password">Password</string>
+    <string name="sync_set_password_summary">Imposta una password per accedere subito dagli altri dispositivi, senza aspettare l\'email</string>
+    <string name="sync_password_hint">Con la password accedi all\'istante da computer o altri telefoni, con la stessa email. Almeno 8 caratteri.</string>
+    <string name="sync_password_new">Nuova password</string>
+    <string name="sync_password_saved">Password salvata</string>
+    <string name="sync_password_error">Impossibile salvare la password: %s</string>
+    <string name="save">Salva</string>
 </resources>

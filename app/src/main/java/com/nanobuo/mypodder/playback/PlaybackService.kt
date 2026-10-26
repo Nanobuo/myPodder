@@ -34,6 +34,7 @@ import com.nanobuo.mypodder.data.db.EpisodeItem
 import com.nanobuo.mypodder.data.download.LocalMedia
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +67,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var db: AppDatabase
     @Inject lateinit var okHttp: OkHttpClient
     @Inject lateinit var appScope: CoroutineScope
+    @Inject lateinit var sync: SyncManager
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var player: ExoPlayer
@@ -282,7 +284,11 @@ class PlaybackService : MediaSessionService() {
             } else {
                 tickJob?.cancel()
                 accumulate()
-                scope.launch { flush() }
+                scope.launch {
+                    flush()
+                    // In pausa: la posizione va subito sugli altri dispositivi.
+                    sync.requestSync(delayMs = 1_000)
+                }
             }
         }
 
@@ -348,6 +354,7 @@ class PlaybackService : MediaSessionService() {
         accumulate()
         flush(savePosition = false)
         episodes.setCompleted(item.episode.id, true, fromPlayback = true)
+        sync.requestSync()
         val stopHere = sleepTimer.state.value == SleepState.EndOfEpisode
         if (stopHere) sleepTimer.cancel()
         val next = episodes.nextInQueue()?.let { episodes.get(it) }

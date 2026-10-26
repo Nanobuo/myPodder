@@ -257,4 +257,27 @@
     <string name="storage_not_supported">Your device does not support external storage</string>
     <string name="storage_not_supported_hint">No microSD card is available: episodes are saved in phone storage. If your phone has a card slot, insert a card and come back here.</string>
     <string name="storage_phone_only">Phone storage (no external storage available)</string>
+    <string name="settings_sync">Sync</string>
+    <string name="sync_sign_in">Sign in to sync</string>
+    <string name="sync_sign_in_summary">Subscriptions, episode progress and queue on all your devices</string>
+    <string name="sync_email_hint">Enter your email: you will receive a code to sign in. No password needed, and an account is created automatically the first time.</string>
+    <string name="sync_email">Email</string>
+    <string name="sync_send_code">Send code</string>
+    <string name="sync_code_hint">We sent an email to %s. Enter the code, or open the link in the email on this phone.</string>
+    <string name="sync_code">Code</string>
+    <string name="sync_verify">Sign in</string>
+    <string name="sync_change_email">Change email</string>
+    <string name="sync_login_error">Sign-in failed: %s</string>
+    <string name="sync_account">Account</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_running">Syncing…</string>
+    <string name="sync_error">Sync failed: %s</string>
+    <string name="sync_last">Last sync: %s</string>
+    <string name="sync_never">Not synced yet</string>
+    <string name="sync_sign_out">Sign out</string>
+    <string name="sync_sign_out_confirm">Sync will stop on this phone. Your podcasts and progress stay here and on your account.</string>
+    <string name="sync_delete_account">Delete account</string>
+    <string name="sync_delete_account_summary">Removes the account and all synced data from the server</string>
+    <string name="sync_delete_account_confirm">The account and everything synced will be deleted from the server. Data on this phone stays. This cannot be undone.</string>
+    <string name="delete">Delete</string>
 </resources>

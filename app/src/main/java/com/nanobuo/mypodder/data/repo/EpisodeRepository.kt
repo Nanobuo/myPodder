@@ -3,6 +3,7 @@ package com.nanobuo.mypodder.data.repo
 import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.download.DownloadRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.sync.SyncStore
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,6 +13,7 @@ class EpisodeRepository @Inject constructor(
     db: AppDatabase,
     private val settings: SettingsRepository,
     private val downloads: DownloadRepository,
+    private val sync: SyncStore,
 ) {
     private val episodeDao = db.episodeDao()
     private val queueDao = db.queueDao()
@@ -29,12 +31,18 @@ class EpisodeRepository @Inject constructor(
     fun observe(id: Long) = episodeDao.observeItem(id)
     suspend fun get(id: Long) = episodeDao.getItem(id)
 
-    suspend fun addToQueue(id: Long) = queueDao.addLast(listOf(id))
-    suspend fun playNext(id: Long) = queueDao.addFirst(id)
-    suspend fun removeFromQueue(id: Long) = queueDao.remove(id)
-    suspend fun moveInQueue(from: Int, to: Int) = queueDao.move(from, to)
-    suspend fun setQueue(ids: List<Long>) = queueDao.rewrite(ids)
-    suspend fun clearQueue() = queueDao.clear()
+    // Le modifiche alla coda fatte qui sono dell'utente: la versione locale diventa la più recente.
+    suspend fun addToQueue(id: Long) = queueChange { queueDao.addLast(listOf(id)) }
+    suspend fun playNext(id: Long) = queueChange { queueDao.addFirst(id) }
+    suspend fun removeFromQueue(id: Long) = queueChange { queueDao.remove(id) }
+    suspend fun moveInQueue(from: Int, to: Int) = queueChange { queueDao.move(from, to) }
+    suspend fun setQueue(ids: List<Long>) = queueChange { queueDao.rewrite(ids) }
+    suspend fun clearQueue() = queueChange { queueDao.clear() }
+
+    private suspend fun queueChange(block: suspend () -> Unit) {
+        block()
+        sync.markQueueChanged()
+    }
     suspend fun nextInQueue(): Long? = queueDao.first()
 
     suspend fun savePosition(id: Long, positionMs: Long) = episodeDao.savePosition(id, positionMs)
@@ -48,7 +56,7 @@ class EpisodeRepository @Inject constructor(
         val ep = episodeDao.get(id) ?: return
         episodeDao.setCompleted(id, completed, if (completed) System.currentTimeMillis() else null)
         if (completed) {
-            queueDao.remove(id)
+            removeFromQueue(id)
             if (fromPlayback) listeningDao.markCompleted(LocalDate.now().toEpochDay(), id, ep.podcastId)
             if (settings.current().deleteAfterPlayed) downloads.delete(id)
         }

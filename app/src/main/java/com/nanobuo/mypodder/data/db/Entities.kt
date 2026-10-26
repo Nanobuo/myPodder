@@ -75,6 +75,8 @@ data class Episode(
     val downloadProgress: Int = 0,
     val localPath: String? = null,
     val downloadedBytes: Long = 0,
+    /** Ultima modifica di posizione/ascoltato su questo dispositivo: base della sincronizzazione. */
+    val stateUpdatedAt: Long = 0,
 )
 
 /** Episodio con i dati del podcast necessari per mostrarlo in una lista. */
@@ -150,3 +152,16 @@ data class StatsTotals(
     val contentMs: Long,
     val completed: Int,
 )
+
+/** Stato di ascolto di un episodio, identificato da feed e guid come sul server. */
+data class EpisodeSyncState(
+    val id: Long,
+    val feedUrl: String,
+    val guid: String,
+    val positionMs: Long,
+    val completed: Boolean,
+    val lastPlayedAt: Long,
+    val stateUpdatedAt: Long,
+)
+
+data class EpisodeKey(val id: Long, val feedUrl: String, val guid: String)

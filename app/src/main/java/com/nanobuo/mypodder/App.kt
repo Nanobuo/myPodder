@@ -10,6 +10,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.nanobuo.mypodder.data.discover.DiscoverStore
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.work.RefreshScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -27,6 +28,7 @@ class App : Application(), Configuration.Provider, SingletonImageLoader.Factory 
     @Inject lateinit var refreshScheduler: RefreshScheduler
     @Inject lateinit var appScope: CoroutineScope
     @Inject lateinit var discoverStore: DiscoverStore
+    @Inject lateinit var sync: SyncManager
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -35,6 +37,7 @@ class App : Application(), Configuration.Provider, SingletonImageLoader.Factory 
         super.onCreate()
         // Consigliati e classifiche pronti prima di aprire la scheda Cerca.
         discoverStore.start()
+        sync.start()
         appScope.launch {
             settings.flow.map { it.refreshHours }.distinctUntilChanged().collect { refreshScheduler.schedule(it) }
         }

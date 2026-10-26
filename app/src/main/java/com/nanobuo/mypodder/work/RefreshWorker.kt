@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.nanobuo.mypodder.data.repo.PodcastRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
@@ -21,9 +22,12 @@ class RefreshWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val podcasts: PodcastRepository,
+    private val sync: SyncManager,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         podcasts.refreshAll()
+        // Tiene allineati i dispositivi (e attivo il progetto Supabase) anche senza aprire l'app.
+        sync.syncNow()
         return Result.success()
     }
 }

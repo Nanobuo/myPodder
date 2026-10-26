@@ -95,7 +95,7 @@ private val topLevels = listOf(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
+fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int, openSettingsRequests: Int = 0) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val destination = backStack?.destination
@@ -107,6 +107,9 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int) {
 
     LaunchedEffect(openPlayerRequests) {
         if (openPlayerRequests > 0 && !onPlayer) nav.navigate(PlayerRoute) { launchSingleTop = true }
+    }
+    LaunchedEffect(openSettingsRequests) {
+        if (openSettingsRequests > 0) nav.navigate(SettingsRoute) { launchSingleTop = true }
     }
 
     val tabReselect = remember { MutableSharedFlow<KClass<*>>(extraBufferCapacity = 1) }

@@ -29,6 +29,10 @@ android {
 
         buildConfigField("String", "PODCASTINDEX_KEY", "\"${secret("PODCASTINDEX_KEY")}\"")
         buildConfigField("String", "PODCASTINDEX_SECRET", "\"${secret("PODCASTINDEX_SECRET")}\"")
+        // Supabase per la sincronizzazione: URL e chiave pubblicabile sono pubblici per natura
+        // (l'accesso ai dati è protetto dalla Row Level Security), quindi possono stare qui.
+        buildConfigField("String", "SUPABASE_URL", "\"${secret("SUPABASE_URL").ifBlank { "https://voepashkpflqclttkrfn.supabase.co" }}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${secret("SUPABASE_KEY").ifBlank { "sb_publishable_8bhwRGoOycMjGFSvt_D9IA_ZM9ImuDk" }}\"")
     }
 
     // Chiave di debug fissa (pubblica, come ogni chiave di debug): ogni build di CI ha la stessa

@@ -53,6 +53,7 @@ import com.nanobuo.mypodder.data.repo.PodcastRepository
 import com.nanobuo.mypodder.data.settings.SettingsRepository
 import com.nanobuo.mypodder.data.settings.NewBadgeStyle
 import com.nanobuo.mypodder.data.settings.ThemeMode
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.ui.components.OpmlStatusEffect
 import com.nanobuo.mypodder.ui.components.rememberOpmlLaunchers
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,6 +69,7 @@ class SettingsViewModel @Inject constructor(
     private val opml: OpmlManager,
     private val updates: UpdateManager,
     podcasts: PodcastRepository,
+    val sync: SyncManager,
 ) : ViewModel() {
     val settings = repo.state
     val opmlStatus = opml.status
@@ -212,6 +214,11 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 leadingContent = { Icon(Icons.Rounded.FileUpload, null) },
                 modifier = Modifier.clickable { opml.export() },
             )
+
+            if (viewModel.sync.isAvailable) {
+                Section(stringResource(R.string.settings_sync))
+                SyncSettings(viewModel.sync, viewModel.viewModelScope)
+            }
 
             Section(stringResource(R.string.search_settings))
             SwitchRow(

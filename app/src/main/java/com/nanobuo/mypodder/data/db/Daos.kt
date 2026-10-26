@@ -110,14 +110,17 @@ interface EpisodeDao {
         imageUrl: String?, durationMs: Long, chaptersUrl: String?,
     )
 
-    @Query("UPDATE episodes SET positionMs = :positionMs, lastPlayedAt = :now, isNew = 0 WHERE id = :id")
+    @Query("UPDATE episodes SET positionMs = :positionMs, lastPlayedAt = :now, stateUpdatedAt = MAX(:now, stateUpdatedAt + 1), isNew = 0 WHERE id = :id")
     suspend fun savePosition(id: Long, positionMs: Long, now: Long = System.currentTimeMillis())
 
     @Query("UPDATE episodes SET durationMs = :durationMs WHERE id = :id AND durationMs != :durationMs")
     suspend fun setDuration(id: Long, durationMs: Long)
 
-    @Query("UPDATE episodes SET completed = :completed, completedAt = :at, positionMs = 0, isNew = 0 WHERE id = :id")
-    suspend fun setCompleted(id: Long, completed: Boolean, at: Long?)
+    @Query(
+        """UPDATE episodes SET completed = :completed, completedAt = :at, positionMs = 0, isNew = 0,
+           stateUpdatedAt = MAX(:now, stateUpdatedAt + 1) WHERE id = :id"""
+    )
+    suspend fun setCompleted(id: Long, completed: Boolean, at: Long?, now: Long = System.currentTimeMillis())
 
     @Query("UPDATE episodes SET isNew = 0 WHERE podcastId = :podcastId")
     suspend fun clearNew(podcastId: Long)
@@ -133,6 +136,40 @@ interface EpisodeDao {
 
     @Query("UPDATE episodes SET chaptersLoaded = 1 WHERE id = :id")
     suspend fun setChaptersLoaded(id: Long)
+
+    // --- Sincronizzazione ---
+
+    @Query(
+        """SELECT e.id, p.feedUrl, e.guid, e.positionMs, e.completed, e.lastPlayedAt, e.stateUpdatedAt
+           FROM episodes e JOIN podcasts p ON p.id = e.podcastId
+           WHERE e.stateUpdatedAt > :since ORDER BY e.stateUpdatedAt LIMIT :limit"""
+    )
+    suspend fun changedSince(since: Long, limit: Int): List<EpisodeSyncState>
+
+    @Query(
+        """SELECT e.id, p.feedUrl, e.guid, e.positionMs, e.completed, e.lastPlayedAt, e.stateUpdatedAt
+           FROM episodes e JOIN podcasts p ON p.id = e.podcastId
+           WHERE p.feedUrl = :feedUrl AND e.guid = :guid"""
+    )
+    suspend fun syncState(feedUrl: String, guid: String): EpisodeSyncState?
+
+    @Query(
+        """UPDATE episodes SET positionMs = :positionMs, completed = :completed,
+           completedAt = CASE WHEN :completed THEN COALESCE(completedAt, :updatedAt) ELSE NULL END,
+           lastPlayedAt = :lastPlayedAt, stateUpdatedAt = :updatedAt,
+           isNew = CASE WHEN :completed OR :positionMs > 0 THEN 0 ELSE isNew END
+           WHERE id = :id"""
+    )
+    suspend fun applyRemoteState(id: Long, positionMs: Long, completed: Boolean, lastPlayedAt: Long, updatedAt: Long)
+
+    @Query(
+        """SELECT e.id, p.feedUrl, e.guid FROM queue q JOIN episodes e ON e.id = q.episodeId
+           JOIN podcasts p ON p.id = e.podcastId ORDER BY q.position"""
+    )
+    suspend fun queueKeys(): List<EpisodeKey>
+
+    @Query("SELECT e.id FROM episodes e JOIN podcasts p ON p.id = e.podcastId WHERE p.feedUrl = :feedUrl AND e.guid = :guid")
+    suspend fun idFor(feedUrl: String, guid: String): Long?
 }
 
 @Dao

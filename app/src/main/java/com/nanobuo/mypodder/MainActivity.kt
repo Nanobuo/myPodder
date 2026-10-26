@@ -28,6 +28,9 @@ class MainActivity : ComponentActivity() {
     /** Incrementato quando si apre l'app dalla notifica: mostra il player a schermo intero. */
     private val openPlayerRequests = mutableIntStateOf(0)
 
+    /** Incrementato quando si torna dal link di accesso nell'email: apre le impostazioni. */
+    private val openSettingsRequests = mutableIntStateOf(0)
+
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -51,7 +54,7 @@ class MainActivity : ComponentActivity() {
                 coverColors = s.coverColors,
                 seedColor = seed,
             ) {
-                MyPodderApp(viewModel, openPlayerRequests.intValue)
+                MyPodderApp(viewModel, openPlayerRequests.intValue, openSettingsRequests.intValue)
             }
         }
     }
@@ -73,6 +76,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        val data = intent?.data
+        if (intent?.action == Intent.ACTION_VIEW && data?.host == "login") {
+            viewModel.sync.handleLoginLink(data)
+            intent.data = null
+            openSettingsRequests.intValue++
+        }
         if (intent?.getBooleanExtra(EXTRA_OPEN_PLAYER, false) == true) {
             intent.removeExtra(EXTRA_OPEN_PLAYER)
             openPlayerRequests.intValue++

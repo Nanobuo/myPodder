@@ -161,6 +161,17 @@ class PlayerConnection @Inject constructor(
         }
     }
 
+    /**
+     * Posizioni arrivate dalla sincronizzazione: se l'episodio è caricato ma fermo, il player si
+     * sposta lì, così Play riprende da dove si era arrivati sull'altro dispositivo.
+     */
+    fun onRemotePositions(positions: Map<Long, Long>) {
+        val c = controller ?: return
+        val id = c.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        val position = positions[id] ?: return
+        if (!c.isPlaying && !c.playWhenReady) c.seekTo(position)
+    }
+
     private fun update() {
         val c = controller ?: return
         val item = c.currentMediaItem

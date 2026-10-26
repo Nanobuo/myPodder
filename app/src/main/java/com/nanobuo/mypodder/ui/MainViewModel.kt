@@ -7,6 +7,7 @@ import com.nanobuo.mypodder.data.update.UpdateManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.AppSettings
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.ui.components.EpisodeActions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +34,7 @@ class MainViewModel @Inject constructor(
     val player: PlayerConnection,
     val updates: UpdateManager,
     private val podcasts: PodcastRepository,
+    val sync: SyncManager,
 ) : ViewModel(), EpisodeActions {
 
     /** true se va mostrato il benvenuto con la scelta degli argomenti. */
@@ -61,6 +63,7 @@ class MainViewModel @Inject constructor(
      * segnala quanti episodi sono usciti dall'ultima apertura dell'app.
      */
     fun onForeground() {
+        sync.requestSync(delayMs = 0)
         if (checkingNewEpisodes) return
         checkingNewEpisodes = true
         viewModelScope.launch {
@@ -71,6 +74,8 @@ class MainViewModel @Inject constructor(
                 val since = s.lastVisit.takeIf { it > 0 } ?: (now - DAY_MS)
                 if (now - s.lastFullRefresh > REFRESH_INTERVAL_MS) {
                     runCatching { podcasts.refreshAll() }
+                    // I feed aggiornati possono avere episodi già ascoltati altrove.
+                    sync.requestSync(delayMs = 0)
                 }
                 val count = episodes.countPublishedSince(since)
                 settingsRepository.setLastVisit(now)

@@ -14,6 +14,7 @@ I dati stanno in un progetto Supabase gratuito.
 2. **Link di ritorno nell'app**: in *Authentication → URL Configuration → Redirect URLs* aggiungi:
    - `com.nanobuo.mypodder://login`
    - `com.nanobuo.mypodder.debug://login` (build di debug)
+   - `http://localhost:47823/**` (app desktop: il link apre una pagina servita dall'app stessa)
 
 Il template standard delle email contiene già il link di accesso: basta questo, i template non
 vanno modificati. Modificarli, ad esempio per aggiungere il codice `{{ .Token }}`, sul piano

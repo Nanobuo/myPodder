@@ -5,7 +5,7 @@
   </picture>
 </h1>
 
-App Android per ascoltare i podcast.
+App per ascoltare i podcast, per Android e per desktop (Windows, macOS, Linux), con sincronizzazione tra dispositivi.
 
 ## Funzionalità
 
@@ -21,11 +21,22 @@ App Android per ascoltare i podcast.
 - **Statistiche**: tempo totale, grafico per giorni/settimane/mesi, podcast più ascoltati, episodi completati, tempo risparmiato con la velocità, serie di giorni consecutivi.
 - **Tema** chiaro/scuro/di sistema e colori dinamici (Material You).
 
+- **Sincronizzazione** di iscrizioni, avanzamento degli episodi e coda tra telefono e computer, con accesso tramite link via email ([Supabase](docs/supabase/README.md)).
+
+## App desktop
+
+La cartella [`desktop`](desktop) contiene myPodder per Windows, macOS e Linux, con le stesse
+funzioni dell'app Android. Gli installer si scaricano dalle release `desktop-v…`; l'ultima build
+di prova è nella release [`desktop-latest`](../../releases/tag/desktop-latest).
+
 ## Tecnologie
 
 Kotlin, Jetpack Compose, Material 3 Expressive, Media3 (ExoPlayer + MediaSessionService),
 Room, DataStore, WorkManager, Hilt, Coil, OkHttp, kotlinx.serialization,
 [Reorderable](https://github.com/Calvin-LL/Reorderable).
+
+Desktop: [Tauri 2](https://tauri.app) (Rust) con interfaccia in Svelte 5 e TypeScript, SQLite,
+colori Material 3 da [material-color-utilities](https://github.com/material-foundation/material-color-utilities).
 
 ## Licenza
 

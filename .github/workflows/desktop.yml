@@ -1,0 +1,153 @@
+name: Desktop
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", "docs/release-notes/desktop-*", ".github/workflows/desktop.yml"]
+  pull_request:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: desktop
+
+jobs:
+  # Controlli veloci (tipi, test, build del frontend) e decisione sulla release.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+      # La release versionata parte solo quando esistono le note docs/release-notes/desktop-vX.Y.Z.md
+      # e la release non è ancora pubblicata; altrimenti si aggiorna solo "desktop-latest".
+      - name: Check version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          tag="desktop-v$version"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -f "../docs/release-notes/$tag.md" ] \
+             && ! gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            args: "--bundles nsis"
+          - os: macos-latest
+            name: macos
+            args: "--target universal-apple-darwin --bundles dmg"
+          - os: ubuntu-24.04
+            name: linux
+            args: "--bundles appimage,deb"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Linux dependencies
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
+            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+
+      - run: npm ci
+
+      - name: Build
+        shell: bash
+        env:
+          VITE_PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
+          VITE_PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
+        run: npx tauri build ${{ matrix.args }}
+
+      - name: Collect installers
+        shell: bash
+        run: |
+          mkdir -p ../out
+          find src-tauri/target -path '*/release/bundle/*' \
+            \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} ../out/ \;
+          ls -la ../out
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: myPodder-desktop-${{ matrix.name }}
+          path: out/*
+
+  publish:
+    needs: [check, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+
+      # Build di prova sempre aggiornata. Non è mai "latest": l'app Android cerca gli
+      # aggiornamenti nella release più recente e deve continuare a trovare l'APK.
+      - name: Update desktop-latest
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete desktop-latest --yes --cleanup-tag || true
+          gh release create desktop-latest out/* \
+            --title "myPodder Desktop · ultima build" \
+            --notes "Build automatica del commit ${GITHUB_SHA::7}, versione ${{ needs.check.outputs.version }}." \
+            --prerelease --latest=false --target "$GITHUB_SHA"
+
+      - name: Publish versioned release
+        if: needs.check.outputs.publish == 'true'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="desktop-v${{ needs.check.outputs.version }}"
+          gh release create "$tag" out/* --title "myPodder Desktop ${{ needs.check.outputs.version }}" \
+            --notes-file "docs/release-notes/$tag.md" --latest=false --target "$GITHUB_SHA"

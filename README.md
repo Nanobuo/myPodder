@@ -26,8 +26,9 @@ App per ascoltare i podcast, per Android e per desktop (Windows, macOS, Linux), 
 ## App desktop
 
 La cartella [`desktop`](desktop) contiene myPodder per Windows, macOS e Linux, con le stesse
-funzioni dell'app Android. Gli installer si scaricano dalle release `desktop-v…`; l'ultima build
-di prova è nella release [`desktop-latest`](../../releases/tag/desktop-latest).
+funzioni dell'app Android. Ogni [release](../../releases/latest) contiene sia l'APK sia gli
+installer per i tre sistemi; l'ultima build di prova è in
+[`desktop-latest`](../../releases/tag/desktop-latest).
 
 ## Tecnologie
 

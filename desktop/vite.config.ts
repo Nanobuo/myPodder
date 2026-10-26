@@ -2,8 +2,11 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { readFileSync } from "node:fs";
 
-// La versione mostrata nell'app è quella di tauri.conf.json, l'unica da aggiornare a ogni release.
-const { version } = JSON.parse(readFileSync(new URL("./src-tauri/tauri.conf.json", import.meta.url), "utf8"));
+// Android e desktop hanno lo stesso numero di versione: in CI arriva da app/build.gradle.kts
+// (APP_VERSION), in locale da tauri.conf.json.
+const version =
+  process.env.APP_VERSION ||
+  JSON.parse(readFileSync(new URL("./src-tauri/tauri.conf.json", import.meta.url), "utf8")).version;
 
 // Configurazione consigliata da Tauri: porta fissa e niente pulizia dello schermo nel terminale.
 export default defineConfig({

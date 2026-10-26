@@ -3,7 +3,7 @@ name: Desktop
 on:
   push:
     branches: [main]
-    paths: ["desktop/**", "docs/release-notes/desktop-*", ".github/workflows/desktop.yml"]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
   pull_request:
     paths: ["desktop/**", ".github/workflows/desktop.yml"]
   workflow_dispatch:
@@ -25,7 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      publish: ${{ steps.version.outputs.publish }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -38,22 +37,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      # La release versionata parte solo quando esistono le note docs/release-notes/desktop-vX.Y.Z.md
-      # e la release non è ancora pubblicata; altrimenti si aggiorna solo "desktop-latest".
-      - name: Check version
+      # Stesso numero di versione dell'app Android.
+      - name: Version
         id: version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          tag="desktop-v$version"
-          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -f "../docs/release-notes/$tag.md" ] \
-             && ! gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-          fi
+        working-directory: .
+        run: echo "version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: check
@@ -104,9 +92,10 @@ jobs:
       - name: Build
         shell: bash
         env:
+          APP_VERSION: ${{ needs.check.outputs.version }}
           VITE_PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
           VITE_PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
-        run: npx tauri build ${{ matrix.args }}
+        run: npx tauri build ${{ matrix.args }} --config "{\"version\":\"$APP_VERSION\"}"
 
       - name: Collect installers
         shell: bash
@@ -133,8 +122,8 @@ jobs:
           path: out
           merge-multiple: true
 
-      # Build di prova sempre aggiornata. Non è mai "latest": l'app Android cerca gli
-      # aggiornamenti nella release più recente e deve continuare a trovare l'APK.
+      # Build di prova sempre aggiornata, mai "latest": le versioni ufficiali (con APK e
+      # installer desktop insieme) le pubblica release.yml.
       - name: Update desktop-latest
         working-directory: .
         env:
@@ -145,13 +134,3 @@ jobs:
             --title "myPodder Desktop · ultima build" \
             --notes "Build automatica del commit ${GITHUB_SHA::7}, versione ${{ needs.check.outputs.version }}." \
             --prerelease --latest=false --target "$GITHUB_SHA"
-
-      - name: Publish versioned release
-        if: needs.check.outputs.publish == 'true'
-        working-directory: .
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="desktop-v${{ needs.check.outputs.version }}"
-          gh release create "$tag" out/* --title "myPodder Desktop ${{ needs.check.outputs.version }}" \
-            --notes-file "docs/release-notes/$tag.md" --latest=false --target "$GITHUB_SHA"

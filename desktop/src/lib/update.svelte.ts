@@ -3,8 +3,9 @@ import { appVersion, getJson } from "./net.ts";
 import { settings, updateSettings } from "./settings.svelte.ts";
 
 const REPO = "Nanobuo/myPodder";
-/** Le versioni desktop si pubblicano con i tag "desktop-vX.Y.Z", separate da quelle Android. */
-const TAG_PREFIX = "desktop-v";
+
+/** Installer per il sistema in uso, per controllare che la release lo contenga. */
+const INSTALLER = /windows/i.test(navigator.userAgent) ? /\.exe$/ : /mac os/i.test(navigator.userAgent) ? /\.dmg$/ : /\.(AppImage|deb)$/;
 
 export interface Release {
   version: string;
@@ -39,14 +40,14 @@ class Updates {
     }
     this.state = { kind: "checking" };
     try {
-      const releases = await getJson<{ tag_name: string; html_url: string; body?: string; draft: boolean; prerelease: boolean }[]>(
-        `https://api.github.com/repos/${REPO}/releases?per_page=30`,
+      // Una sola release per Android e desktop (vX.Y.Z), con APK e installer insieme.
+      const latest = await getJson<{ tag_name: string; html_url: string; body?: string; assets: { name: string }[] }>(
+        `https://api.github.com/repos/${REPO}/releases/latest`,
         { headers: { Accept: "application/vnd.github+json" } },
       );
       updateSettings({ lastUpdateCheck: Date.now() });
-      const latest = releases.find((r) => !r.draft && r.tag_name.startsWith(TAG_PREFIX));
-      const version = latest?.tag_name.slice(TAG_PREFIX.length);
-      if (latest && version && newer(version, appVersion)) {
+      const version = latest.tag_name.replace(/^v/, "");
+      if (newer(version, appVersion) && latest.assets.some((a) => INSTALLER.test(a.name))) {
         this.state = { kind: "available", release: { version, url: latest.html_url, notes: latest.body ?? "" } };
       } else {
         this.state = { kind: "upToDate" };

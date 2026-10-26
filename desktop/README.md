@@ -5,8 +5,8 @@ sincronizzazione (iscrizioni, avanzamento degli episodi e coda).
 
 ## Installazione
 
-Scarica l'installer dalla release `desktop-vX.Y.Z` (o dall'ultima build di prova,
-`desktop-latest`):
+Scarica l'installer dall'ultima release `vX.Y.Z`, la stessa che contiene l'APK Android
+(oppure dall'ultima build di prova, `desktop-latest`):
 
 - **Windows**: `myPodder_X.Y.Z_x64-setup.exe`. Al primo avvio SmartScreen può mostrare un avviso
   perché l'app non è firmata: *Ulteriori informazioni → Esegui comunque*.
@@ -38,6 +38,7 @@ iTunes.
 - `src-tauri`: parte nativa in Rust. Oltre ai plugin di Tauri contiene un piccolo server locale
   per riprodurre gli episodi scaricati e quello che riceve il ritorno dal link di accesso.
 
-La versione si aggiorna solo in `src-tauri/tauri.conf.json`. La release `desktop-vX.Y.Z` si
-pubblica quando su `main` arriva una versione nuova insieme a
-`docs/release-notes/desktop-vX.Y.Z.md`.
+Android e desktop condividono il numero di versione, quello di `versionName` in
+`app/build.gradle.kts`: quando su `main` arriva una versione nuova, `release.yml` compila APK e
+installer e li pubblica insieme nella release `vX.Y.Z`. In `src-tauri/tauri.conf.json` la
+versione serve solo per le build locali.

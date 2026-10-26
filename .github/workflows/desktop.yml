@@ -71,15 +71,19 @@ jobs:
             name: linux
             args: "--bundles appimage,deb"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
       - name: Linux dependencies
         if: matrix.name == 'linux'
+        timeout-minutes: 15
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
-            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+          sudo -E apt-get update -q
+          sudo -E apt-get install -y -q --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
 
       - uses: actions/setup-node@v6
         with:

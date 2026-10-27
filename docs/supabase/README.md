@@ -1,59 +1,14 @@
-# Sincronizzazione con Supabase
+# Sincronizzazione (Supabase)
 
-myPodder può sincronizzare tra dispositivi:
+Configurazione del progetto Supabase, da fare una volta sola:
 
-- le iscrizioni;
-- l'avanzamento degli episodi (posizione, ascoltato, ultimo ascolto);
-- la coda.
-
-I dati stanno in un progetto Supabase gratuito.
-
-## Configurazione del progetto (una volta sola)
-
-1. **Tabelle**: in *SQL Editor*, incolla ed esegui [`schema.sql`](schema.sql).
-2. **Link di ritorno nell'app**: in *Authentication → URL Configuration → Redirect URLs* aggiungi:
+1. In **SQL Editor** incolla ed esegui [`schema.sql`](schema.sql). Va rieseguito quando cambia:
+   non tocca i dati già salvati.
+2. In **Authentication → URL Configuration → Redirect URLs** aggiungi:
    - `com.nanobuo.mypodder://login`
-   - `com.nanobuo.mypodder.debug://login` (build di debug)
-   - `http://localhost:47823/**` (app desktop: il link apre una pagina servita dall'app stessa)
+   - `com.nanobuo.mypodder.debug://login`
+   - `http://localhost:47823/**` (app desktop)
 
-Il template standard delle email contiene già il link di accesso: basta questo, i template non
-vanno modificati. Modificarli, ad esempio per aggiungere il codice `{{ .Token }}`, sul piano
-gratuito richiede un SMTP proprio. L'app accetta anche il codice, se presente.
-
-URL del progetto e chiave pubblicabile sono già impostati in `app/build.gradle.kts`. Puoi
-sostituirli con le variabili `SUPABASE_URL` e `SUPABASE_KEY`, da Secrets o da `local.properties`.
-La chiave pubblicabile è pensata per stare nelle app: ogni utente vede solo i propri dati grazie
-alla Row Level Security.
-
-## Accesso
-
-- **Link via email**: il primo accesso. Il servizio email integrato di Supabase è pensato per le
-  prove e può impiegare anche alcuni minuti.
-- **Password**: una volta collegato un dispositivo, da *Impostazioni → Sincronizzazione →
-  Password* imposti una password. Poi sugli altri dispositivi inserisci email e password e accedi
-  subito, senza email.
-- Per email più rapide si può configurare un SMTP proprio (*Authentication → Emails → SMTP
-  Settings*), ad esempio Brevo o Resend con un piano gratuito.
-
-## Come funziona
-
-- **Iscrizioni**: fusione a tre vie tra l'elenco locale, quello sul server e quello presente
-  all'ultima sincronizzazione. Un podcast aggiunto o rimosso su un dispositivo viene aggiunto o
-  rimosso anche sugli altri.
-- **Episodi**: vengono identificati da URL del feed e guid. Per ciascuno vince la modifica più
-  recente.
-- **Coda**: è un'unica lista e vince la versione modificata per ultima.
-- **Quando si sincronizza**:
-  - all'apertura dell'app;
-  - quando metti in pausa;
-  - a fine episodio;
-  - quando cambi iscrizioni o coda;
-  - durante l'aggiornamento automatico dei feed.
-
-## Limiti del piano gratuito
-
-- Un progetto senza attività per 7 giorni viene messo in pausa. Lo riattivi dalla dashboard e i
-  dati restano. L'aggiornamento automatico dei feed sincronizza anche in background, quindi di
-  solito il progetto resta attivo.
-- Le email di Supabase hanno un limite di pochi invii l'ora. Per molti utenti va configurato un
-  SMTP proprio (*Authentication → Emails → SMTP Settings*).
+Il primo accesso avviene con il link via email. Le email di Supabase possono tardare qualche
+minuto: dopo il primo accesso conviene impostare una password da *Impostazioni →
+Sincronizzazione*, così sugli altri dispositivi si entra subito.

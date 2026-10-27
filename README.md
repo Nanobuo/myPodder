@@ -5,39 +5,27 @@
   </picture>
 </h1>
 
-App per ascoltare i podcast, per Android e per desktop (Windows, macOS, Linux), con sincronizzazione tra dispositivi.
+App per ascoltare i podcast su Android e su computer (Windows, macOS, Linux), con
+sincronizzazione tra i dispositivi.
 
-## Funzionalità
+**Download**: l'[ultima release](../../releases/latest) contiene l'APK per Android e gli
+installer per Windows, macOS e Linux.
 
-- **Libreria** dei podcast seguiti, con aggiornamento dei feed manuale o automatico (WorkManager).
-- **Ricerca** tramite [Podcast Index](https://podcastindex.org), podcast di tendenza e anteprima prima di iscriversi; si può anche incollare direttamente l'URL di un feed.
-- **Importazione ed esportazione OPML** per passare da e verso altre app.
-- **Ascolto offline**: download per episodio, download automatico per podcast, solo Wi-Fi, spazio occupato, eliminazione dopo l'ascolto.
-- **Coda** riordinabile con il trascinamento, "Riproduci dopo", nuovi episodi aggiunti in automatico.
-- **Player** a schermo intero e mini-player, velocità da 0,5× a 3×, salti avanti/indietro configurabili, ripresa dalla posizione salvata, controlli in notifica e sulla schermata di blocco (Media3).
-- **Sleep timer** a minuti o a fine episodio, con dissolvenza finale e prolungamento scuotendo il telefono.
-- **Capitoli** da JSON Podcasting 2.0, tag ID3 `CHAP` del file audio, Podlove Simple Chapters o timestamp nella descrizione. I timestamp nella descrizione sono cliccabili.
-- **Copertina per episodio**: immagine del capitolo, dell'episodio o, in mancanza, del podcast.
-- **Statistiche**: tempo totale, grafico per giorni/settimane/mesi, podcast più ascoltati, episodi completati, tempo risparmiato con la velocità, serie di giorni consecutivi.
-- **Tema** chiaro/scuro/di sistema e colori dinamici (Material You).
+## Funzioni
 
-- **Sincronizzazione** di iscrizioni, avanzamento degli episodi e coda tra telefono e computer, con accesso tramite link via email ([Supabase](docs/supabase/README.md)).
+- Libreria, ricerca con [Podcast Index](https://podcastindex.org), classifiche e suggerimenti
+- Coda, download per l'ascolto offline, import ed export OPML
+- Player con capitoli, velocità variabile e timer di spegnimento
+- Statistiche e cronologia di ascolto
+- Sincronizzazione di iscrizioni, avanzamento, coda e statistiche ([configurazione](docs/supabase/README.md))
 
-## App desktop
+## Sviluppo
 
-La cartella [`desktop`](desktop) contiene myPodder per Windows, macOS e Linux, con le stesse
-funzioni dell'app Android. Ogni [release](../../releases/latest) contiene sia l'APK sia gli
-installer per i tre sistemi; l'ultima build di prova è in
-[`desktop-latest`](../../releases/tag/desktop-latest).
+- **Android** (`app/`): Kotlin e Jetpack Compose. Si compila con `./gradlew assembleDebug`.
+- **Desktop** (`desktop/`): Tauri 2 e Svelte. Istruzioni in [`desktop/README.md`](desktop/README.md).
 
-## Tecnologie
-
-Kotlin, Jetpack Compose, Material 3 Expressive, Media3 (ExoPlayer + MediaSessionService),
-Room, DataStore, WorkManager, Hilt, Coil, OkHttp, kotlinx.serialization,
-[Reorderable](https://github.com/Calvin-LL/Reorderable).
-
-Desktop: [Tauri 2](https://tauri.app) (Rust) con interfaccia in Svelte 5 e TypeScript, SQLite,
-colori Material 3 da [material-color-utilities](https://github.com/material-foundation/material-color-utilities).
+Una nuova `versionName` in `app/build.gradle.kts` su `main` pubblica la release per entrambe le
+piattaforme, con le note di `docs/release-notes/`.
 
 ## Licenza
 

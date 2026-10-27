@@ -119,13 +119,17 @@ fun LibraryScreen(
     val badgeStyle by viewModel.badgeStyle.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    // Le due schede si cambiano anche scorrendo con il dito: la scheda è la pagina del pager,
+    // unica fonte (un secondo stato copiato avanti e indietro annullava "Vedi" all'avvio).
+    val pager = rememberPagerState { 2 }
+    val tab = pager.currentPage
     // Ogni richiesta va gestita una sola volta, anche se la schermata viene ricreata.
     var handledLatestRequests by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(openLatestRequests) {
         if (openLatestRequests > handledLatestRequests) {
             handledLatestRequests = openLatestRequests
-            tab = 1
+            // Vale anche se il pager non è ancora visibile (libreria in caricamento).
+            pager.requestScrollToPage(1)
         }
     }
     var menuOpen by remember { mutableStateOf(false) }
@@ -213,11 +217,7 @@ fun LibraryScreen(
                     }
                 }
                 else -> {
-                    // Le due schede si cambiano anche scorrendo con il dito.
-                    val pager = rememberPagerState(initialPage = tab) { 2 }
                     val pagerScope = rememberCoroutineScope()
-                    LaunchedEffect(pager.currentPage) { tab = pager.currentPage }
-                    LaunchedEffect(tab) { if (pager.currentPage != tab) pager.animateScrollToPage(tab) }
                     PrimaryTabRow(selectedTabIndex = pager.currentPage) {
                         Tab(
                             selected = pager.currentPage == 0,

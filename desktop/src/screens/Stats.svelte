@@ -27,7 +27,6 @@
   let confirmReset = $state(false);
   let data = $state<{
     totalMs: number;
-    savedMs: number;
     completed: number;
     periodMs: number;
     bars: Bar[];
@@ -116,7 +115,6 @@
       const [streak, best] = streaks(active);
       data = {
         totalMs: totals.listenedMs,
-        savedMs: Math.max(0, totals.contentMs - totals.listenedMs),
         completed: totals.completed,
         periodMs: days.reduce((a, d) => a + Number(d.listenedMs), 0),
         bars: bars(p, days),
@@ -173,11 +171,6 @@
           <Icon name="task_alt" />
           <div class="title-large">{data.completed}</div>
           <div class="body-small">{t("stats_completed")}</div>
-        </div>
-        <div class="tile">
-          <Icon name="speed" />
-          <div class="title-large">{formatDuration(data.savedMs)}</div>
-          <div class="body-small">{t("stats_saved")}</div>
         </div>
       </div>
 
@@ -246,7 +239,7 @@
   }
   .tiles {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin: 12px 0 24px;
   }

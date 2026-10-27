@@ -132,7 +132,6 @@
     </plurals>
     <string name="stats_streak_best">Current streak · best %d</string>
     <string name="stats_completed">Episodes completed</string>
-    <string name="stats_saved">Time saved with faster playback</string>
     <string name="period_day">Days</string>
     <string name="period_week">Weeks</string>
     <string name="period_month">Months</string>

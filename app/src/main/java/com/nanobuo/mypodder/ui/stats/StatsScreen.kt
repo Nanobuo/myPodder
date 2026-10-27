@@ -35,7 +35,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -165,12 +164,6 @@ fun StatsScreen(onPodcast: (Long) -> Unit, viewModel: StatsViewModel = hiltViewM
                     Modifier.weight(1f),
                 )
             }
-            StatTile(
-                Icons.Rounded.Speed,
-                formatDuration(s.savedMs),
-                stringResource(R.string.stats_saved),
-                Modifier.fillMaxWidth(),
-            )
 
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 val options = listOf(

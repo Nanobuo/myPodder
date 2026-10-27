@@ -31,6 +31,8 @@ export interface AppSettings {
   /** Cartella scelta per i download; vuoto = cartella dell'app. */
   downloadDir: string;
   lastEpisodeId: number | null;
+  /** Ultima attività del player su questo computer (ascolto, pausa, cambio episodio). */
+  lastPlayerActivity: number;
   libraryTab: number;
 }
 
@@ -59,6 +61,7 @@ const defaults: AppSettings = {
   lastVisit: 0,
   downloadDir: "",
   lastEpisodeId: null,
+  lastPlayerActivity: 0,
   libraryTab: 0,
 };
 

@@ -141,7 +141,7 @@ class Player {
     this.audio.src = src;
     this.audio.playbackRate = settings.speed;
     this.audio.load();
-    updateSettings({ lastEpisodeId: id });
+    updateSettings({ lastEpisodeId: id, lastPlayerActivity: Date.now() });
     this.updateMetadata();
     if (opts.autoplay) await this.audio.play().catch(() => undefined);
     void ensureChapters(id).then(async () => {
@@ -224,6 +224,7 @@ class Player {
 
   private onPlayingChanged(playing: boolean) {
     this.isPlaying = playing;
+    updateSettings({ lastPlayerActivity: Date.now() });
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = playing ? "playing" : "paused";
     if (playing) {
       this.positionDirty = true;
@@ -306,7 +307,10 @@ class Player {
     const latest = await episodesDb.lastPlayed();
     const current = this.current ? await episodesDb.item(this.current.id) : null;
     if (this.isPlaying || this.positionDirty) return;
-    if (latest && latest.id !== current?.id && latest.lastPlayedAt > (current?.lastPlayedAt ?? 0)) {
+    // Si segue un altro dispositivo solo se ci ha ascoltato dopo l'ultima attività di questo
+    // computer: altrimenti vale il player di qui, con la sua coda.
+    const since = Math.max(current?.lastPlayedAt ?? 0, settings.lastPlayerActivity);
+    if (latest && latest.id !== current?.id && latest.lastPlayedAt > since) {
       await this.load(latest.id, { autoplay: false });
       return;
     }

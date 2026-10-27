@@ -58,6 +58,8 @@ data class AppSettings(
     val lastVisit: Long = 0,
     /** Cartella scelta sulla microSD (URI dell'albero); vuoto = memoria del telefono. */
     val downloadTreeUri: String = "",
+    /** Ultima attività del player su questo dispositivo (ascolto, pausa, cambio episodio). */
+    val lastPlayerActivity: Long = 0,
 )
 
 @Singleton
@@ -92,6 +94,7 @@ class SettingsRepository @Inject constructor(
         val lastFullRefresh = longPreferencesKey("last_full_refresh")
         val lastVisit = longPreferencesKey("last_visit")
         val downloadTreeUri = stringPreferencesKey("download_tree_uri")
+        val lastPlayerActivity = longPreferencesKey("last_player_activity")
     }
 
     private val defaults = AppSettings()
@@ -122,6 +125,7 @@ class SettingsRepository @Inject constructor(
             lastFullRefresh = p[Keys.lastFullRefresh] ?: defaults.lastFullRefresh,
             lastVisit = p[Keys.lastVisit] ?: defaults.lastVisit,
             downloadTreeUri = p[Keys.downloadTreeUri] ?: defaults.downloadTreeUri,
+            lastPlayerActivity = p[Keys.lastPlayerActivity] ?: defaults.lastPlayerActivity,
             newBadge = p[Keys.newBadge]?.let { NewBadgeStyle.entries.getOrNull(it) } ?: defaults.newBadge,
         )
     }
@@ -163,4 +167,5 @@ class SettingsRepository @Inject constructor(
     suspend fun setLastFullRefresh(v: Long) = set(Keys.lastFullRefresh, v)
     suspend fun setLastVisit(v: Long) = set(Keys.lastVisit, v)
     suspend fun setDownloadTreeUri(v: String) = set(Keys.downloadTreeUri, v)
+    suspend fun setLastPlayerActivity(v: Long) = set(Keys.lastPlayerActivity, v)
 }

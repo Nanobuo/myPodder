@@ -201,7 +201,7 @@ interface QueueDao {
     suspend fun insertAll(entries: List<QueueEntry>)
 
     @Query("DELETE FROM queue WHERE episodeId = :episodeId")
-    suspend fun remove(episodeId: Long)
+    suspend fun remove(episodeId: Long): Int
 
     @Query("DELETE FROM queue")
     suspend fun clear()

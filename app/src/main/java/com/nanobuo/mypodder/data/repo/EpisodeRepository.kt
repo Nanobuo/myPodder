@@ -35,7 +35,13 @@ class EpisodeRepository @Inject constructor(
     // Le modifiche alla coda fatte qui sono dell'utente: la versione locale diventa la più recente.
     suspend fun addToQueue(id: Long) = queueChange { queueDao.addLast(listOf(id)) }
     suspend fun playNext(id: Long) = queueChange { queueDao.addFirst(id) }
-    suspend fun removeFromQueue(id: Long) = queueChange { queueDao.remove(id) }
+    /**
+     * Toglie l'episodio dalla coda. Se non c'era non è una modifica: segnarla renderebbe questa
+     * coda "più recente" e la sincronizzazione sovrascriverebbe quella degli altri dispositivi.
+     */
+    suspend fun removeFromQueue(id: Long) {
+        if (queueDao.remove(id) > 0) sync.markQueueChanged()
+    }
     suspend fun moveInQueue(from: Int, to: Int) = queueChange { queueDao.move(from, to) }
     suspend fun setQueue(ids: List<Long>) = queueChange { queueDao.rewrite(ids) }
     suspend fun clearQueue() = queueChange { queueDao.clear() }

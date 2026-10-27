@@ -174,11 +174,14 @@ class PlayerConnection @Inject constructor(
         appScope.launch {
             val latest = episodes.lastPlayed()
             val current = currentId?.let { episodes.get(it) }
+            // Si segue un altro dispositivo solo se ci ha ascoltato dopo l'ultima attività di
+            // questo: altrimenti vale il player di qui, con la sua coda.
+            val lastActivity = settings.current().lastPlayerActivity
             withContext(Dispatchers.Main) {
                 if (controller !== c || c.isPlaying || c.playWhenReady) return@withContext
                 if (c.currentMediaItem?.mediaId?.toLongOrNull() != currentId) return@withContext
                 val newer = latest != null && latest.episode.id != currentId &&
-                    latest.episode.lastPlayedAt > (current?.episode?.lastPlayedAt ?: 0)
+                    latest.episode.lastPlayedAt > maxOf(current?.episode?.lastPlayedAt ?: 0, lastActivity)
                 when {
                     newer -> c.setMediaItem(MediaItem.Builder().setMediaId(latest!!.episode.id.toString()).build())
                     current != null && !current.episode.completed &&

@@ -78,6 +78,18 @@
         ],
         "displayLanguageSelector": false
       }
+    },
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlDRUEyRTVGMzA1RDQwNTIKUldSU1FGMHdYeTdxbkNHMy8zdzJpOTA1eFUxWDR3bDVUQjlReFRWV3NCOUprVmdxN0Q2dWhSWm8K",
+      "endpoints": [
+        "https://github.com/Nanobuo/myPodder/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

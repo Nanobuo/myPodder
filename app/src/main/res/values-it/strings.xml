@@ -129,7 +129,6 @@
     </plurals>
     <string name="stats_streak_best">Serie attuale · record %d</string>
     <string name="stats_completed">Episodi completati</string>
-    <string name="stats_saved">Tempo risparmiato con la velocità</string>
     <string name="period_day">Giorni</string>
     <string name="period_week">Settimane</string>
     <string name="period_month">Mesi</string>

@@ -181,8 +181,9 @@
               : t("update_check_summary")}
       icon="system_update"
       onclick={() => {
-        if (updates.state.kind === "available") updates.open(updates.state.release);
-        else void updates.check(true);
+        // Con un aggiornamento già trovato si riapre la finestra per installarlo.
+        if (updates.state.kind === "available") updates.dismissed = null;
+        else if (updates.state.kind !== "downloading" && updates.state.kind !== "installing") void updates.check(true);
       }}
     />
     <ListItem headline={t("update_auto")} onclick={() => updateSettings({ autoCheckUpdates: !settings.autoCheckUpdates })}>

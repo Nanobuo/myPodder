@@ -286,6 +286,7 @@ class PlaybackService : MediaSessionService() {
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            markActivity()
             if (isPlaying) {
                 startTicker()
             } else {
@@ -329,6 +330,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun onEpisodeChanged(id: Long?) {
+        markActivity()
         accumulate()
         val previous = current
         val listened = pendingListenedMs
@@ -374,11 +376,13 @@ class PlaybackService : MediaSessionService() {
             player.clearMediaItems()
             return
         }
+        // Con lo sleep timer "fine episodio" il prossimo resta pronto, ma non parte. La pausa va
+        // messa prima di caricarlo: a fine episodio il player è ancora pronto e con la riproduzione
+        // attiva, e ExoPlayer avvierebbe da solo il nuovo episodio appena caricato.
+        if (stopHere) player.pause()
         player.setMediaItem(buildItem(next), resumePosition(next))
-        // Con lo sleep timer "fine episodio" il prossimo resta pronto, ma non parte.
-        if (stopHere) return
         player.prepare()
-        player.play()
+        if (!stopHere) player.play()
     }
 
     // --- Avanzamento: statistiche, posizione, immagini dei capitoli ---
@@ -480,6 +484,11 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun today() = LocalDate.now().toEpochDay()
+
+    /** Qualcosa è successo nel player di questo dispositivo: un altro dispositivo non lo scavalca. */
+    private fun markActivity() {
+        appScope.launch { settings.setLastPlayerActivity(System.currentTimeMillis()) }
+    }
 
     private companion object {
         const val FADE_MS = 10_000L

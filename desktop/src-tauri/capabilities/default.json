@@ -14,6 +14,8 @@
     "opener:default",
     "upload:default",
     "window-state:default",
+    "updater:default",
+    "process:allow-restart",
     {
       "identifier": "http:default",
       "allow": [{ "url": "http://*" }, { "url": "https://*" }, { "url": "http://*:*" }, { "url": "https://*:*" }]

@@ -32,7 +32,6 @@ data class Bar(val label: String, val detail: String, val valueMs: Long)
 
 data class StatsUi(
     val totalMs: Long = 0,
-    val savedMs: Long = 0,
     val completed: Int = 0,
     val periodMs: Long = 0,
     val bars: List<Bar> = emptyList(),
@@ -87,7 +86,6 @@ class StatsViewModel @Inject constructor(db: AppDatabase, private val sync: Sync
         val (streak, best) = streaks(active)
         StatsUi(
             totalMs = totals.listenedMs,
-            savedMs = (totals.contentMs - totals.listenedMs).coerceAtLeast(0),
             completed = totals.completed,
             periodMs = days.sumOf { it.listenedMs },
             bars = bars(p, days),

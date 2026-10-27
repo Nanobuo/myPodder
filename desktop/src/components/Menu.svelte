@@ -1,4 +1,7 @@
 <script lang="ts" module>
+  /** Chiude il menu aperto: ne resta visibile uno solo alla volta. */
+  let closeOpen: (() => void) | null = null;
+
   export interface MenuItem {
     label: string;
     icon?: string;
@@ -20,6 +23,8 @@
   function toggle(e: MouseEvent) {
     e.stopPropagation();
     if (!open) {
+      closeOpen?.();
+      closeOpen = () => (open = false);
       const r = anchor.getBoundingClientRect();
       const up = r.bottom + 56 * items.length + 16 > window.innerHeight;
       pos = { top: up ? r.top : r.bottom, left: Math.min(r.right, window.innerWidth - 8), up };

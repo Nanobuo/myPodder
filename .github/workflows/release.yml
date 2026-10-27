@@ -114,7 +114,7 @@ jobs:
             args: "--bundles nsis"
           - os: macos-latest
             name: macos
-            args: "--target universal-apple-darwin --bundles dmg"
+            args: "--target universal-apple-darwin --bundles app,dmg"
           - os: ubuntu-24.04
             name: linux
             args: "--bundles appimage,deb"
@@ -158,14 +158,25 @@ jobs:
           APP_VERSION: ${{ needs.version.outputs.version }}
           VITE_PODCASTINDEX_KEY: ${{ secrets.PODCASTINDEX_KEY }}
           VITE_PODCASTINDEX_SECRET: ${{ secrets.PODCASTINDEX_SECRET }}
-        run: npx tauri build ${{ matrix.args }} --config "{\"version\":\"$APP_VERSION\"}"
+          # Chiave che firma gli aggiornamenti in-app (la pubblica è in tauri.conf.json).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            config="{\"version\":\"$APP_VERSION\",\"bundle\":{\"createUpdaterArtifacts\":true}}"
+          else
+            echo "::warning title=Updater::TAURI_SIGNING_PRIVATE_KEY missing: no in-app update for this release."
+            config="{\"version\":\"$APP_VERSION\"}"
+          fi
+          npx tauri build ${{ matrix.args }} --config "$config"
 
       - name: Collect installers
         shell: bash
         run: |
           mkdir -p ../out
           find src-tauri/target -path '*/release/bundle/*' \
-            \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} ../out/ \;
+            \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.app.tar.gz' -o -name '*.sig' \) \
+            -exec cp {} ../out/ \;
           ls -la ../out
 
       - uses: actions/upload-artifact@v7
@@ -184,6 +195,42 @@ jobs:
           path: out
           pattern: release-*
           merge-multiple: true
+
+      # latest.json per l'aggiornamento in-app del desktop: indica, per ogni sistema, il file da
+      # scaricare e la sua firma. Le firme finiscono nel file, non tra gli asset della release.
+      - name: Updater manifest
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mac=$(ls out/*.app.tar.gz 2>/dev/null | head -1 || true)
+          if [ -n "$mac" ]; then
+            mv "$mac" "out/myPodder_${VERSION}_universal.app.tar.gz"
+            if [ -f "$mac.sig" ]; then mv "$mac.sig" "out/myPodder_${VERSION}_universal.app.tar.gz.sig"; fi
+          fi
+          python3 - <<'PY'
+          import glob, json, os, datetime
+          v = os.environ["VERSION"]
+          base = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/v{v}/"
+          def entry(pattern):
+              for f in glob.glob("out/" + pattern):
+                  if os.path.exists(f + ".sig"):
+                      return {"signature": open(f + ".sig").read().strip(), "url": base + os.path.basename(f)}
+          platforms = {}
+          win, mac, lin = entry("*-setup.exe"), entry("*.app.tar.gz"), entry("*.AppImage")
+          if win: platforms["windows-x86_64"] = win
+          if mac: platforms["darwin-aarch64"] = platforms["darwin-x86_64"] = mac
+          if lin: platforms["linux-x86_64"] = lin
+          if platforms:
+              notes_file = f"docs/release-notes/v{v}.md"
+              notes = open(notes_file).read() if os.path.exists(notes_file) else ""
+              json.dump({"version": v, "notes": notes,
+                         "pub_date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                         "platforms": platforms}, open("out/latest.json", "w"), indent=2)
+              print("latest.json:", ", ".join(platforms))
+          else:
+              print("No signed updater artifacts: latest.json not created.")
+          PY
+          rm -f out/*.sig
 
       - name: Publish release
         env:

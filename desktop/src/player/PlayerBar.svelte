@@ -10,6 +10,8 @@
   import SleepDialog from "./SleepDialog.svelte";
   import SpeedButton from "./SpeedButton.svelte";
   import Spinner from "../components/Spinner.svelte";
+  import CountBadge from "../components/CountBadge.svelte";
+  import { queueCount } from "../lib/live.svelte.ts";
 
   let sleepOpen = $state(false);
   const item = $derived(player.current);
@@ -51,7 +53,10 @@
         selected={player.sleep.kind !== "off"}
         onclick={() => (sleepOpen = true)}
       />
-      <IconButton icon="queue_music" label={t("nav_queue")} onclick={() => nav.navigate({ name: "queue" })} />
+      <span class="badged">
+        <IconButton icon="queue_music" label={t("nav_queue")} onclick={() => nav.navigate({ name: "queue" })} />
+        <span class="badge-pos"><CountBadge count={queueCount(player.current?.id)} /></span>
+      </span>
       <div class="volume">
         <IconButton
           icon={player.volume === 0 ? "volume_off" : player.volume < 0.5 ? "volume_down" : "volume_up"}
@@ -143,6 +148,15 @@
     align-items: center;
     justify-content: flex-end;
     gap: 4px;
+  }
+  .badged {
+    position: relative;
+    display: inline-flex;
+  }
+  .badge-pos {
+    position: absolute;
+    top: 8px;
+    right: 8px;
   }
   .volume {
     display: flex;

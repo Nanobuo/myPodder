@@ -289,6 +289,12 @@ class PlaybackService : MediaSessionService() {
             markActivity()
             if (isPlaying) {
                 startTicker()
+                // L'episodio esce dalla coda quando parte davvero, non quando viene solo caricato
+                // (es. all'apertura dell'app): altrimenti la coda di qui risulterebbe "modificata"
+                // e sovrascriverebbe quella sincronizzata dagli altri dispositivi.
+                player.currentMediaItem?.mediaId?.toLongOrNull()?.let { id ->
+                    scope.launch { episodes.removeFromQueue(id) }
+                }
             } else {
                 tickJob?.cancel()
                 accumulate()
@@ -330,7 +336,6 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun onEpisodeChanged(id: Long?) {
-        markActivity()
         accumulate()
         val previous = current
         val listened = pendingListenedMs
@@ -350,7 +355,6 @@ class PlaybackService : MediaSessionService() {
             current = item
             shownArtwork = item.artwork
             settings.setLastEpisode(id)
-            episodes.removeFromQueue(id)
             chaptersJob = scope.launch {
                 chapters.ensureLoaded(id)
                 chapters.observe(id).collect {

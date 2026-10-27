@@ -15,10 +15,12 @@
   let dragIndex = $state<number | null>(null);
   let overIndex = $state<number | null>(null);
 
+  // L'episodio caricato nel player resta in coda finché non parte: qui compare solo sopra.
   $effect(() => {
     void versions.queue;
     void versions.episodes;
-    void queueDb.items().then((l) => (items = l));
+    const current = player.current?.id;
+    void queueDb.items().then((l) => (items = l.filter((e) => e.id !== current)));
   });
 
   function drop(to: number) {

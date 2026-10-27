@@ -2,7 +2,9 @@
   import { onMount } from "svelte";
   import { app } from "./lib/app.svelte.ts";
   import { t, type StringKey } from "./lib/i18n.ts";
-  import { reloadQueueIds } from "./lib/live.svelte.ts";
+  import { queueCount, reloadQueueIds } from "./lib/live.svelte.ts";
+  import { sync } from "./lib/sync.svelte.ts";
+  import CountBadge from "./components/CountBadge.svelte";
   import { player } from "./lib/player.svelte.ts";
   import { settings } from "./lib/settings.svelte.ts";
   import { nav, versions, type Route } from "./lib/store.svelte.ts";
@@ -47,6 +49,15 @@
     void versions.queue;
     void versions.podcasts;
     void reloadQueueIds();
+  });
+
+  // Una modifica della coda va subito sugli altri dispositivi (non solo al prossimo ritorno sulla
+  // finestra o alla prossima pausa).
+  let queueSeen = -1;
+  $effect(() => {
+    const v = versions.queue;
+    if (queueSeen >= 0 && v !== queueSeen) sync.requestSync();
+    queueSeen = v;
   });
 
   const items: { route: Route["name"]; icon: string; label: StringKey }[] = [
@@ -109,7 +120,12 @@
       {#each items as item (item.route)}
         {@const active = nav.section === item.route}
         <button class="rail-item" class:active onclick={() => nav.navigate({ name: item.route } as Route)} title={t(item.label)}>
-          <span class="indicator"><Icon name={item.icon} fill={active} /></span>
+          <span class="indicator">
+            <span class="badged">
+              <Icon name={item.icon} fill={active} />
+              {#if item.route === "queue"}<CountBadge count={queueCount(player.current?.id)} />{/if}
+            </span>
+          </span>
           <span class="label-medium">{t(item.label)}</span>
         </button>
       {/each}
@@ -194,6 +210,10 @@
     height: 32px;
     border-radius: 16px;
     transition: background-color 0.2s;
+  }
+  .badged {
+    position: relative;
+    display: inline-flex;
   }
   .rail-item:hover .indicator {
     background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);

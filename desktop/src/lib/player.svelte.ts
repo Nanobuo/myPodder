@@ -141,12 +141,20 @@ class Player {
     this.audio.src = src;
     this.audio.playbackRate = settings.speed;
     this.audio.load();
-    updateSettings({ lastEpisodeId: id, lastPlayerActivity: Date.now() });
+    updateSettings({ lastEpisodeId: id });
     this.updateMetadata();
     if (opts.autoplay) await this.audio.play().catch(() => undefined);
     void ensureChapters(id).then(async () => {
       if (this.current?.id === id) this.chapters = await chaptersDb.get(id);
     });
+  }
+
+  /**
+   * L'episodio esce dalla coda quando parte davvero, non quando viene solo caricato (es.
+   * all'avvio): altrimenti la coda di qui risulterebbe "modificata" e sovrascriverebbe quella
+   * sincronizzata dagli altri dispositivi.
+   */
+  private async leaveQueue(id: number) {
     if ((await queueDb.ids()).includes(id)) await repo.removeFromQueue(id);
   }
 
@@ -228,6 +236,7 @@ class Player {
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = playing ? "playing" : "paused";
     if (playing) {
       this.positionDirty = true;
+      if (this.current) void this.leaveQueue(this.current.id);
       this.lastTickWall = performance.now();
       this.lastTickPos = this.audio.currentTime * 1000;
       this.tick ??= setInterval(() => {

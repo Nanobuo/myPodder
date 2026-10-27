@@ -16,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -51,8 +52,10 @@ class PlayerViewModel @Inject constructor(
 
     val position = connection.positionFlow()
 
-    val queue: StateFlow<List<EpisodeItem>> = episodes.queue
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    /** Coda senza l'episodio nel player, che ci resta finché non parte (es. appena riaperta l'app). */
+    val queue: StateFlow<List<EpisodeItem>> = combine(episodes.queue, episodeId) { list, id ->
+        list.filter { it.episode.id != id }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val settings: StateFlow<AppSettings> = settingsRepository.state
 
@@ -73,7 +76,7 @@ class PlayerViewModel @Inject constructor(
     fun setSpeed(speed: Float) = connection.setSpeed(speed)
 
     fun playNextInQueue() {
-        viewModelScope.launch { episodes.nextInQueue()?.let { connection.play(it) } }
+        queue.value.firstOrNull()?.let { connection.play(it.episode.id) }
     }
 
     fun toggleTimeDisplay() {

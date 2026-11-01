@@ -9,7 +9,7 @@
   import Cover from "../components/Cover.svelte";
   import Dialog from "../components/Dialog.svelte";
   import EpisodeRow from "../components/EpisodeRow.svelte";
-  import HtmlDescription from "../components/HtmlDescription.svelte";
+  import ExpandableDescription from "../components/ExpandableDescription.svelte";
   import IconButton from "../components/IconButton.svelte";
   import Menu from "../components/Menu.svelte";
   import Spinner from "../components/Spinner.svelte";
@@ -22,22 +22,6 @@
   let { id }: { id: number } = $props();
   let podcast = $state<Podcast | null>(null);
   let episodes = $state<EpisodeItem[] | null>(null);
-  let expanded = $state(false);
-  let descEl = $state<HTMLElement>();
-  let overflowing = $state(false);
-
-  // "Espandi" solo se la descrizione non sta tutta nello spazio ridotto.
-  $effect(() => {
-    const el = descEl;
-    if (!el) return;
-    const check = () => {
-      if (!expanded) overflowing = el.scrollHeight > el.clientHeight + 4;
-    };
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    check();
-    return () => ro.disconnect();
-  });
   let confirmUnsubscribe = $state(false);
 
   // Parti da saltare: secondi ("45") o minuti e secondi ("1:30"); vuoto = niente.
@@ -116,12 +100,7 @@
           <h2 class="headline-medium selectable">{podcast.title}</h2>
           {#if podcast.author}<p class="title-medium muted selectable">{podcast.author}</p>{/if}
           {#if podcast.description}
-            <div class="desc" class:clamped={!expanded} class:fade={!expanded && overflowing} bind:this={descEl}>
-              <HtmlDescription html={podcast.description} />
-            </div>
-            {#if overflowing}
-              <button class="more label-large" onclick={() => (expanded = !expanded)}>{expanded ? t("collapse") : t("expand")}</button>
-            {/if}
+            <ExpandableDescription html={podcast.description} />
           {/if}
           <div class="row actions">
             <Button variant="tonal" icon="check" onclick={() => (confirmUnsubscribe = true)}>{t("subscribed")}</Button>
@@ -233,23 +212,6 @@
   }
   .info > p {
     margin: 0 0 12px;
-  }
-  .desc {
-    color: var(--md-on-surface-variant);
-  }
-  .desc.clamped {
-    max-height: 80px;
-    overflow: hidden;
-  }
-  .desc.fade {
-    mask-image: linear-gradient(to bottom, black 50%, transparent);
-  }
-  .more {
-    border: none;
-    background: none;
-    color: var(--md-primary);
-    padding: 4px 0;
-    cursor: pointer;
   }
   .actions {
     margin-top: 16px;

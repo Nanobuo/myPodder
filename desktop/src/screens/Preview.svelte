@@ -8,7 +8,7 @@
   import { sync } from "../lib/sync.svelte.ts";
   import Button from "../components/Button.svelte";
   import Cover from "../components/Cover.svelte";
-  import HtmlDescription from "../components/HtmlDescription.svelte";
+  import ExpandableDescription from "../components/ExpandableDescription.svelte";
   import Icon from "../components/Icon.svelte";
   import IconButton from "../components/IconButton.svelte";
   import Spinner from "../components/Spinner.svelte";
@@ -67,7 +67,7 @@
           {/if}
         </div>
         {#if feed?.description}
-          <div class="desc"><HtmlDescription html={feed.description} /></div>
+          <div class="desc"><ExpandableDescription html={feed.description} maxHeight={160} /></div>
         {/if}
       </div>
     </section>
@@ -116,10 +116,6 @@
   }
   .desc {
     margin-top: 16px;
-    max-height: 160px;
-    overflow: hidden;
-    mask-image: linear-gradient(to bottom, black 60%, transparent);
-    color: var(--md-on-surface-variant);
   }
   .episodes {
     display: flex;

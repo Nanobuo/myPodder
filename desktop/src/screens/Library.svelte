@@ -59,11 +59,13 @@
       {:else}
         <IconButton icon="refresh" label={t("refresh")} onclick={() => app.refresh(true)} />
       {/if}
-      <IconButton
-        icon={settings.libraryGrid ? "view_list" : "grid_view"}
-        label={settings.libraryGrid ? t("show_as_list") : t("show_as_grid")}
-        onclick={() => updateSettings({ libraryGrid: !settings.libraryGrid })}
-      />
+      {#if settings.libraryTab === 0}
+        <IconButton
+          icon={settings.libraryGrid ? "view_list" : "grid_view"}
+          label={settings.libraryGrid ? t("show_as_list") : t("show_as_grid")}
+          onclick={() => updateSettings({ libraryGrid: !settings.libraryGrid })}
+        />
+      {/if}
       <Menu
         items={[
           { label: t("import_opml"), icon: "file_download", run: runImport },

@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class, RemoteListening::class],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -41,6 +41,15 @@ abstract class AppDatabase : RoomDatabase() {
                         "feedUrl TEXT NOT NULL, guid TEXT NOT NULL, listenedMs INTEGER NOT NULL, contentMs INTEGER NOT NULL, " +
                         "completed INTEGER NOT NULL, PRIMARY KEY(deviceId, day, feedUrl, guid))"
                 )
+            }
+        }
+
+        /** v5: parte iniziale e finale da saltare per ogni podcast. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE podcasts ADD COLUMN skipIntroMs INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE podcasts ADD COLUMN skipOutroMs INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE podcasts ADD COLUMN settingsUpdatedAt INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

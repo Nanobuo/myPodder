@@ -55,6 +55,8 @@ class SyncStore @Inject constructor(
         val statsPulledUntil = longPreferencesKey("stats_pulled_until")
         val statsResetSeen = longPreferencesKey("stats_reset_seen")
         val statsResetPending = longPreferencesKey("stats_reset_pending")
+        val skipPushedUntil = longPreferencesKey("skip_pushed_until")
+        val skipPulledUntil = longPreferencesKey("skip_pulled_until")
     }
 
     private val data = context.syncStore.data
@@ -109,6 +111,10 @@ class SyncStore @Inject constructor(
     suspend fun setStatsPulledUntil(v: Long) = context.syncStore.edit { it[Keys.statsPulledUntil] = v }
     suspend fun setStatsResetSeen(v: Long) = context.syncStore.edit { it[Keys.statsResetSeen] = v }
     suspend fun setStatsResetPending(v: Long) = context.syncStore.edit { it[Keys.statsResetPending] = v }
+    suspend fun skipPushedUntil() = long(Keys.skipPushedUntil)
+    suspend fun skipPulledUntil() = long(Keys.skipPulledUntil)
+    suspend fun setSkipPushedUntil(v: Long) = context.syncStore.edit { it[Keys.skipPushedUntil] = v }
+    suspend fun setSkipPulledUntil(v: Long) = context.syncStore.edit { it[Keys.skipPulledUntil] = v }
 
     private suspend fun long(key: Preferences.Key<Long>) = data.first()[key] ?: 0
 

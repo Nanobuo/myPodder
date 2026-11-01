@@ -100,6 +100,9 @@ class PodcastRepository @Inject constructor(
 
     suspend fun setAutoDownload(podcastId: Long, enabled: Boolean) = podcastDao.setAutoDownload(podcastId, enabled)
 
+    suspend fun setSkip(podcastId: Long, introMs: Long, outroMs: Long) =
+        podcastDao.setSkip(podcastId, introMs.coerceAtLeast(0), outroMs.coerceAtLeast(0))
+
     /** Aggiorna un podcast e restituisce il numero di nuovi episodi. */
     suspend fun refresh(podcastId: Long): Int {
         val podcast = podcastDao.get(podcastId) ?: return 0

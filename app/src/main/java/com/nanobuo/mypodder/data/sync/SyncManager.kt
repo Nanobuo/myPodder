@@ -104,6 +104,7 @@ class SyncManager @Inject constructor(
                 pullStates(token, newFeeds)
                 syncQueue(token)
                 syncStats(token)
+                syncPodcastSettings(token, newFeeds)
             }
             store.setLastSyncAt(System.currentTimeMillis())
             _status.value = SyncStatus.Idle
@@ -327,6 +328,32 @@ class SyncManager @Inject constructor(
                 api.upsertQueue(token, RemoteQueue(userId(), items, at))
                 store.setQueueUpdatedAt(at)
             }
+        }
+    }
+
+    // --- Salti di inizio e fine per podcast ---
+
+    private suspend fun syncPodcastSettings(token: String, newFeeds: Set<String>) {
+        try {
+            val start = System.currentTimeMillis()
+            val changed = podcastDao.settingsChangedSince(store.skipPushedUntil())
+            api.upsertPodcastSettings(
+                token,
+                changed.map { RemotePodcastSettings(userId(), it.feedUrl, it.skipIntroMs, it.skipOutroMs, it.settingsUpdatedAt) },
+            )
+            changed.lastOrNull()?.let { store.setSkipPushedUntil(minOf(it.settingsUpdatedAt, start)) }
+
+            val pulled = store.skipPulledUntil()
+            var newest = pulled
+            val rows = api.podcastSettingsSince(token, (pulled - OVERLAP_MS).coerceAtLeast(0)) +
+                newFeeds.flatMap { api.podcastSettingsFor(token, it) }
+            for (r in rows) {
+                podcastDao.applyRemoteSkip(r.feedUrl, r.skipIntroMs, r.skipOutroMs, r.updatedAt)
+                newest = maxOf(newest, r.syncedAt)
+            }
+            store.setSkipPulledUntil(newest)
+        } catch (e: SupabaseException) {
+            if (e.code != 404) throw e
         }
     }
 

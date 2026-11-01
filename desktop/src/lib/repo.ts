@@ -92,6 +92,12 @@ export async function unsubscribe(podcastId: number) {
   changed("podcasts", "episodes", "queue", "downloads");
 }
 
+/** Parte iniziale e finale da saltare in ogni episodio del podcast. */
+export async function setSkip(podcastId: number, introMs: number, outroMs: number) {
+  await podcastsDb.setSkip(podcastId, introMs, outroMs);
+  changed("podcasts");
+}
+
 export async function setAutoDownload(podcastId: number, enabled: boolean) {
   await podcastsDb.setAutoDownload(podcastId, enabled);
   changed("podcasts");

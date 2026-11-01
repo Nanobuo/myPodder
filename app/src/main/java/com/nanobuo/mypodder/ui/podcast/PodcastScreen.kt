@@ -17,6 +17,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ContentCut
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardType
+import com.nanobuo.mypodder.util.formatClock
+import com.nanobuo.mypodder.util.parseClockToMs
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -69,6 +75,7 @@ fun PodcastScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     var confirmUnsubscribe by remember { mutableStateOf(false) }
     var expanded by rememberSaveable { mutableStateOf(false) }
+    var editSkip by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) { onDispose { viewModel.markSeen() } }
 
@@ -133,6 +140,18 @@ fun PodcastScreen(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        ListItem(
+                            headlineContent = { Text(stringResource(R.string.skip_parts)) },
+                            supportingContent = {
+                                Text(
+                                    if (p.skipIntroMs == 0L && p.skipOutroMs == 0L) stringResource(R.string.skip_parts_off)
+                                    else stringResource(R.string.skip_parts_summary, formatClock(p.skipIntroMs), formatClock(p.skipOutroMs))
+                                )
+                            },
+                            leadingContent = { Icon(Icons.Rounded.ContentCut, null) },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.fillMaxWidth().clickable { editSkip = true },
+                        )
                         OutlinedButton(onClick = { confirmUnsubscribe = true }) { Text(stringResource(R.string.unsubscribe)) }
                     }
                     HorizontalDivider()
@@ -141,6 +160,14 @@ fun PodcastScreen(
                     EpisodeRow(item, onClick = { onEpisode(item.episode.id) }, showPodcast = false, dimPlayed = true)
                 }
             }
+        }
+    }
+
+    val current = podcast
+    if (editSkip && current != null) {
+        SkipDialog(current.skipIntroMs, current.skipOutroMs, onDismiss = { editSkip = false }) { intro, outro ->
+            editSkip = false
+            viewModel.setSkip(intro, outro)
         }
     }
 
@@ -160,4 +187,51 @@ fun PodcastScreen(
             },
         )
     }
+}
+
+/** Durate di inizio e fine da saltare, scritte come secondi ("45") o minuti e secondi ("1:30"). */
+@Composable
+private fun SkipDialog(introMs: Long, outroMs: Long, onDismiss: () -> Unit, onSave: (Long, Long) -> Unit) {
+    fun shown(ms: Long) = if (ms > 0) formatClock(ms) else ""
+    var intro by remember { mutableStateOf(shown(introMs)) }
+    var outro by remember { mutableStateOf(shown(outroMs)) }
+    fun parse(v: String): Long? = if (v.isBlank()) 0L else parseClockToMs(v.trim())
+    val introValue = parse(intro)
+    val outroValue = parse(outro)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.ContentCut, null) },
+        title = { Text(stringResource(R.string.skip_parts)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.skip_parts_hint))
+                OutlinedTextField(
+                    value = intro,
+                    onValueChange = { intro = it.filter { c -> c.isDigit() || c == ':' }.take(8) },
+                    label = { Text(stringResource(R.string.skip_intro)) },
+                    placeholder = { Text("0:45") },
+                    isError = introValue == null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+                OutlinedTextField(
+                    value = outro,
+                    onValueChange = { outro = it.filter { c -> c.isDigit() || c == ':' }.take(8) },
+                    label = { Text(stringResource(R.string.skip_outro)) },
+                    placeholder = { Text("1:00") },
+                    isError = outroValue == null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = introValue != null && outroValue != null,
+                onClick = { onSave(introValue ?: 0, outroValue ?: 0) },
+            ) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }

@@ -14,6 +14,12 @@ export interface Podcast {
   autoDownload: boolean;
   subscribedAt: number;
   lastRefreshed: number;
+  /** Parte iniziale da saltare in ogni episodio (sigla, messaggi ricorrenti); 0 = niente. */
+  skipIntroMs: number;
+  /** Parte finale da saltare: arrivati lì l'episodio conta come finito. */
+  skipOutroMs: number;
+  /** Ultima modifica dei salti su questo computer: base della sincronizzazione. */
+  settingsUpdatedAt: number;
 }
 
 export interface PodcastWithNew extends Podcast {
@@ -99,7 +105,10 @@ const SCHEMA = [
     author TEXT, description TEXT, imageUrl TEXT, link TEXT, categories TEXT,
     autoDownload INTEGER NOT NULL DEFAULT 0,
     subscribedAt INTEGER NOT NULL DEFAULT 0,
-    lastRefreshed INTEGER NOT NULL DEFAULT 0)`,
+    lastRefreshed INTEGER NOT NULL DEFAULT 0,
+    skipIntroMs INTEGER NOT NULL DEFAULT 0,
+    skipOutroMs INTEGER NOT NULL DEFAULT 0,
+    settingsUpdatedAt INTEGER NOT NULL DEFAULT 0)`,
   `CREATE TABLE IF NOT EXISTS episodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     podcastId INTEGER NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
@@ -144,6 +153,12 @@ async function open(): Promise<Database> {
   await db.execute("PRAGMA foreign_keys = ON");
   await db.execute("PRAGMA journal_mode = WAL");
   // Database creati dalla prima versione: manca la data di modifica delle statistiche.
+  const podcastCols = await db.select<{ name: string }[]>("PRAGMA table_info(podcasts)");
+  if (podcastCols.length && !podcastCols.some((c) => c.name === "skipIntroMs")) {
+    for (const col of ["skipIntroMs", "skipOutroMs", "settingsUpdatedAt"]) {
+      await db.execute(`ALTER TABLE podcasts ADD COLUMN ${col} INTEGER NOT NULL DEFAULT 0`);
+    }
+  }
   const cols = await db.select<{ name: string }[]>("PRAGMA table_info(listening)");
   if (cols.length && !cols.some((c) => c.name === "updatedAt")) {
     await db.execute("ALTER TABLE listening ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 1");
@@ -219,7 +234,7 @@ export const podcastsDb = {
   async byUrl(url: string): Promise<Podcast | null> {
     return (await select("SELECT * FROM podcasts WHERE feedUrl = ?", [url])).map(toPodcast)[0] ?? null;
   },
-  async insert(p: Omit<Podcast, "id">): Promise<number> {
+  async insert(p: Omit<Podcast, "id" | "skipIntroMs" | "skipOutroMs" | "settingsUpdatedAt">): Promise<number> {
     await execute(
       `INSERT OR IGNORE INTO podcasts (feedUrl, title, author, description, imageUrl, link, categories, autoDownload, subscribedAt, lastRefreshed)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -235,6 +250,20 @@ export const podcastsDb = {
   },
   setCategories: (id: number, categories: string) => execute("UPDATE podcasts SET categories = ? WHERE id = ?", [categories, id]),
   setAutoDownload: (id: number, v: boolean) => execute("UPDATE podcasts SET autoDownload = ? WHERE id = ?", [v ? 1 : 0, id]),
+  setSkip: (id: number, introMs: number, outroMs: number, now = Date.now()) =>
+    execute(
+      "UPDATE podcasts SET skipIntroMs = ?, skipOutroMs = ?, settingsUpdatedAt = MAX(?, settingsUpdatedAt + 1) WHERE id = ?",
+      [Math.max(0, Math.round(introMs)), Math.max(0, Math.round(outroMs)), now, id],
+    ),
+  async settingsChangedSince(since: number): Promise<Podcast[]> {
+    return (await select("SELECT * FROM podcasts WHERE settingsUpdatedAt > ? ORDER BY settingsUpdatedAt", [since])).map(toPodcast);
+  },
+  /** Salti arrivati da un altro dispositivo, se più recenti di quelli di qui. */
+  applyRemoteSkip: (feedUrl: string, introMs: number, outroMs: number, updatedAt: number) =>
+    execute(
+      "UPDATE podcasts SET skipIntroMs = ?, skipOutroMs = ?, settingsUpdatedAt = ? WHERE feedUrl = ? AND settingsUpdatedAt < ?",
+      [introMs, outroMs, updatedAt, feedUrl, updatedAt],
+    ),
   delete: (id: number) => execute("DELETE FROM podcasts WHERE id = ?", [id]),
 };
 

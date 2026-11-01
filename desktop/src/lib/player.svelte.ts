@@ -1,4 +1,4 @@
-import { artworkOf, chaptersDb, episodesDb, listeningDb, queueDb, type Chapter, type EpisodeItem } from "./db.ts";
+import { artworkOf, chaptersDb, episodesDb, podcastsDb, listeningDb, queueDb, type Chapter, type EpisodeItem } from "./db.ts";
 import { ensureChapters } from "./chapterLoader.ts";
 import { localSource } from "./downloads.svelte.ts";
 import { epochDay } from "./format.ts";
@@ -67,6 +67,7 @@ class Player {
       // WebKit non sempre segnala la fine del caricamento dopo un salto.
       if (this.isBuffering && a.readyState >= 3) this.isBuffering = false;
       this.updatePositionState();
+      this.checkOutro();
     });
     a.addEventListener("play", () => this.onPlayingChanged(true));
     a.addEventListener("pause", () => this.onPlayingChanged(false));
@@ -118,10 +119,32 @@ class Player {
     if (id != null) await this.load(id, { autoplay: false });
   }
 
+  /** Parti da saltare per il podcast in ascolto (0 = niente). */
+  private skipIntroMs = 0;
+  private skipOutroMs = 0;
+  private skippingOutro = false;
+
   private resumePosition(e: EpisodeItem): number {
-    if (e.completed) return 0;
-    if (e.durationMs > 0 && e.positionMs > e.durationMs - 5000) return 0;
-    return e.positionMs;
+    let position = e.positionMs;
+    if (e.completed || (e.durationMs > 0 && e.positionMs > e.durationMs - 5000)) position = 0;
+    // Dall'inizio si parte dopo la sigla, se impostata per il podcast.
+    const fits = e.durationMs <= 0 || this.skipIntroMs < e.durationMs - 5000;
+    return this.skipIntroMs > 0 && position < this.skipIntroMs && fits ? this.skipIntroMs : position;
+  }
+
+  /**
+   * Arrivati alla parte finale da saltare, l'episodio si chiude come se fosse finito: segnato
+   * come ascoltato e avanti con la coda. Su episodi più corti della parte non si fa nulla.
+   */
+  private checkOutro() {
+    const outro = this.skipOutroMs;
+    const duration = this.duration;
+    if (outro <= 0 || this.skippingOutro || !this.current || !this.isPlaying || duration <= outro + 5000) return;
+    if (this.audio.currentTime * 1000 >= duration - outro) {
+      this.skippingOutro = true;
+      this.audio.pause();
+      void this.onEnded();
+    }
   }
 
   private async load(id: number, opts: { startMs?: number; autoplay: boolean }) {
@@ -130,6 +153,10 @@ class Player {
     if (!item || seq !== this.loadSeq) return;
     await this.flush();
     this.positionDirty = false;
+    const podcast = await podcastsDb.get(item.podcastId);
+    this.skipIntroMs = podcast?.skipIntroMs ?? 0;
+    this.skipOutroMs = podcast?.skipOutroMs ?? 0;
+    this.skippingOutro = false;
     this.current = item;
     this.error = false;
     this.position = opts.startMs ?? this.resumePosition(item);
@@ -280,7 +307,8 @@ class Player {
       await listeningDb.add(epochDay(), item.id, item.podcastId, listened, content);
       changed("listening");
     }
-    if (savePosition && this.positionDirty && !this.audio.ended && this.audio.readyState >= 1 && this.pendingSeek == null) {
+    // Dopo il salto della parte finale l'episodio è già segnato come finito: la posizione non serve.
+    if (savePosition && this.positionDirty && !this.skippingOutro && !this.audio.ended && this.audio.readyState >= 1 && this.pendingSeek == null) {
       await repo.savePosition(item.id, this.audio.currentTime * 1000);
       // Finché si ascolta la posizione continua a cambiare; in pausa resta salvata così.
       this.positionDirty = this.isPlaying;
@@ -325,7 +353,10 @@ class Player {
     }
     if (!current) return;
     this.current = current;
-    if (!current.completed && Math.abs(current.positionMs - this.position) > 2000) this.moveTo(current.positionMs);
+    // Prima della sigla saltata non si torna: il player parte già dopo.
+    if (!current.completed && current.positionMs >= this.skipIntroMs && Math.abs(current.positionMs - this.position) > 2000) {
+      this.moveTo(current.positionMs);
+    }
   }
 
   /** Aggiorna i dati dell'episodio corrente dopo una modifica (es. segnato come ascoltato). */

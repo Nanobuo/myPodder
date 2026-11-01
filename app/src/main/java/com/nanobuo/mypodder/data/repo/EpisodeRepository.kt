@@ -31,6 +31,10 @@ class EpisodeRepository @Inject constructor(
     fun observe(id: Long) = episodeDao.observeItem(id)
     suspend fun get(id: Long) = episodeDao.getItem(id)
     suspend fun lastPlayed() = episodeDao.lastPlayed()
+    private val podcastDao = db.podcastDao()
+
+    /** Parte iniziale saltata per il podcast (0 se non impostata). */
+    suspend fun skipIntroMs(podcastId: Long): Long = podcastDao.get(podcastId)?.skipIntroMs ?: 0
 
     // Le modifiche alla coda fatte qui sono dell'utente: la versione locale diventa la più recente.
     suspend fun addToQueue(id: Long) = queueChange { queueDao.addLast(listOf(id)) }

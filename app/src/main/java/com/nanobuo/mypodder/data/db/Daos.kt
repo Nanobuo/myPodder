@@ -46,6 +46,22 @@ interface PodcastDao {
     @Query("UPDATE podcasts SET categories = :categories WHERE id = :id")
     suspend fun setCategories(id: Long, categories: String)
 
+    @Query(
+        """UPDATE podcasts SET skipIntroMs = :introMs, skipOutroMs = :outroMs,
+           settingsUpdatedAt = MAX(:now, settingsUpdatedAt + 1) WHERE id = :id"""
+    )
+    suspend fun setSkip(id: Long, introMs: Long, outroMs: Long, now: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM podcasts WHERE settingsUpdatedAt > :since ORDER BY settingsUpdatedAt")
+    suspend fun settingsChangedSince(since: Long): List<Podcast>
+
+    /** Salti arrivati da un altro dispositivo, se più recenti di quelli di qui. */
+    @Query(
+        """UPDATE podcasts SET skipIntroMs = :introMs, skipOutroMs = :outroMs, settingsUpdatedAt = :updatedAt
+           WHERE feedUrl = :feedUrl AND settingsUpdatedAt < :updatedAt"""
+    )
+    suspend fun applyRemoteSkip(feedUrl: String, introMs: Long, outroMs: Long, updatedAt: Long): Int
+
     @Query("UPDATE podcasts SET autoDownload = :enabled WHERE id = :id")
     suspend fun setAutoDownload(id: Long, enabled: Boolean)
 

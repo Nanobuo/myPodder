@@ -177,6 +177,8 @@ class PlayerConnection @Inject constructor(
             // Si segue un altro dispositivo solo se ci ha ascoltato dopo l'ultima attività di
             // questo: altrimenti vale il player di qui, con la sua coda.
             val lastActivity = settings.current().lastPlayerActivity
+            // Prima della sigla saltata non si torna: il player parte già dopo.
+            val intro = current?.let { episodes.skipIntroMs(it.episode.podcastId) } ?: 0
             withContext(Dispatchers.Main) {
                 if (controller !== c || c.isPlaying || c.playWhenReady) return@withContext
                 if (c.currentMediaItem?.mediaId?.toLongOrNull() != currentId) return@withContext
@@ -184,7 +186,7 @@ class PlayerConnection @Inject constructor(
                     latest.episode.lastPlayedAt > maxOf(current?.episode?.lastPlayedAt ?: 0, lastActivity)
                 when {
                     newer -> c.setMediaItem(MediaItem.Builder().setMediaId(latest!!.episode.id.toString()).build())
-                    current != null && !current.episode.completed &&
+                    current != null && !current.episode.completed && current.episode.positionMs >= intro &&
                         kotlin.math.abs(current.episode.positionMs - playerPosition) > 2_000 -> c.seekTo(current.episode.positionMs)
                 }
             }

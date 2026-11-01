@@ -70,6 +70,16 @@ data class RemoteListeningRow(
 )
 
 @Serializable
+data class RemotePodcastSettings(
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("feed_url") val feedUrl: String,
+    @SerialName("skip_intro_ms") val skipIntroMs: Long = 0,
+    @SerialName("skip_outro_ms") val skipOutroMs: Long = 0,
+    @SerialName("updated_at") val updatedAt: Long = 0,
+    @SerialName("synced_at") val syncedAt: Long = 0,
+)
+
+@Serializable
 data class RemoteStatsReset(
     @SerialName("user_id") val userId: String? = null,
     @SerialName("reset_at") val resetAt: Long,
@@ -219,6 +229,20 @@ class SupabaseApi @Inject constructor(
 
     suspend fun upsertQueue(token: String, queue: RemoteQueue) =
         upsert(token, "queue_state", "user_id", json.encodeToString(listOf(queue)))
+
+    // --- Impostazioni dei podcast (salti di inizio e fine) ---
+
+    suspend fun upsertPodcastSettings(token: String, rows: List<RemotePodcastSettings>) {
+        if (rows.isNotEmpty()) upsert(token, "podcast_settings", "user_id,feed_url", json.encodeToString(rows))
+    }
+
+    suspend fun podcastSettingsSince(token: String, since: Long): List<RemotePodcastSettings> =
+        json.decodeFromString(
+            call(get(rest("podcast_settings") { addQueryParameter("synced_at", "gt.$since"); addQueryParameter("order", "synced_at") }, token))
+        )
+
+    suspend fun podcastSettingsFor(token: String, feedUrl: String): List<RemotePodcastSettings> =
+        json.decodeFromString(call(get(rest("podcast_settings") { addQueryParameter("feed_url", "eq.$feedUrl") }, token)))
 
     // --- Statistiche ---
 

@@ -8,6 +8,7 @@ import com.nanobuo.mypodder.data.db.EpisodeItem
 import com.nanobuo.mypodder.data.db.Podcast
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.repo.PodcastRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.ui.nav.PodcastRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +26,7 @@ class PodcastViewModel @Inject constructor(
     private val podcasts: PodcastRepository,
     private val episodes: EpisodeRepository,
     private val appScope: CoroutineScope,
+    private val sync: SyncManager,
 ) : ViewModel() {
     private val id = savedStateHandle.toRoute<PodcastRoute>().id
 
@@ -51,6 +53,14 @@ class PodcastViewModel @Inject constructor(
 
     fun setAutoDownload(enabled: Boolean) {
         viewModelScope.launch { podcasts.setAutoDownload(id, enabled) }
+    }
+
+    /** Parte iniziale e finale da saltare in ogni episodio di questo podcast. */
+    fun setSkip(introMs: Long, outroMs: Long) {
+        appScope.launch {
+            podcasts.setSkip(id, introMs, outroMs)
+            sync.requestSync()
+        }
     }
 
     fun unsubscribe(onDone: () -> Unit) {

@@ -20,6 +20,12 @@ data class Podcast(
     val autoDownload: Boolean = false,
     val subscribedAt: Long = System.currentTimeMillis(),
     val lastRefreshed: Long = 0,
+    /** Parte iniziale da saltare in ogni episodio (sigla, messaggi ricorrenti); 0 = niente. */
+    val skipIntroMs: Long = 0,
+    /** Parte finale da saltare: arrivati lì l'episodio conta come finito. */
+    val skipOutroMs: Long = 0,
+    /** Ultima modifica dei salti su questo dispositivo: base della sincronizzazione. */
+    val settingsUpdatedAt: Long = 0,
 )
 
 /** Podcast con il numero di episodi nuovi, per il badge nella libreria. */

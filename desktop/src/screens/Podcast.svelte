@@ -14,6 +14,10 @@
   import Menu from "../components/Menu.svelte";
   import Spinner from "../components/Spinner.svelte";
   import Switch from "../components/Switch.svelte";
+  import Icon from "../components/Icon.svelte";
+  import TextField from "../components/TextField.svelte";
+  import { formatClock } from "../lib/format.ts";
+  import { parseClockToMs } from "../lib/time.ts";
 
   let { id }: { id: number } = $props();
   let podcast = $state<Podcast | null>(null);
@@ -35,6 +39,27 @@
     return () => ro.disconnect();
   });
   let confirmUnsubscribe = $state(false);
+
+  // Parti da saltare: secondi ("45") o minuti e secondi ("1:30"); vuoto = niente.
+  let editSkip = $state(false);
+  let introText = $state("");
+  let outroText = $state("");
+  const parseSkip = (v: string) => (v.trim() ? parseClockToMs(v.trim()) : 0);
+
+  function openSkip() {
+    introText = podcast?.skipIntroMs ? formatClock(podcast.skipIntroMs) : "";
+    outroText = podcast?.skipOutroMs ? formatClock(podcast.skipOutroMs) : "";
+    editSkip = true;
+  }
+
+  async function saveSkip() {
+    const intro = parseSkip(introText);
+    const outro = parseSkip(outroText);
+    if (intro == null || outro == null) return;
+    editSkip = false;
+    await repo.setSkip(id, intro, outro);
+    sync.requestSync();
+  }
   let refreshing = $state(false);
 
   $effect(() => {
@@ -108,6 +133,17 @@
               </span>
             </label>
           </div>
+          <button class="skip" onclick={openSkip}>
+            <Icon name="content_cut" />
+            <span>
+              <span class="body-large">{t("skip_parts")}</span><br />
+              <span class="body-small muted">
+                {podcast.skipIntroMs || podcast.skipOutroMs
+                  ? t("skip_parts_summary", formatClock(podcast.skipIntroMs), formatClock(podcast.skipOutroMs))
+                  : t("skip_parts_off")}
+              </span>
+            </span>
+          </button>
         </div>
       </section>
     {/if}
@@ -125,6 +161,20 @@
   </div>
 </div>
 
+{#if editSkip && podcast}
+  <Dialog title={t("skip_parts")} icon="content_cut" onclose={() => (editSkip = false)}>
+    <div class="skip-form">
+      <p>{t("skip_parts_hint")}</p>
+      <TextField bind:value={introText} label={t("skip_intro")} icon="first_page" autofocus onenter={saveSkip} />
+      <TextField bind:value={outroText} label={t("skip_outro")} icon="last_page" onenter={saveSkip} />
+    </div>
+    {#snippet actions()}
+      <Button variant="text" onclick={() => (editSkip = false)}>{t("cancel")}</Button>
+      <Button disabled={parseSkip(introText) == null || parseSkip(outroText) == null} onclick={saveSkip}>{t("save")}</Button>
+    {/snippet}
+  </Dialog>
+{/if}
+
 {#if confirmUnsubscribe && podcast}
   <Dialog title={t("unsubscribe")} onclose={() => (confirmUnsubscribe = false)}>
     <p>{t("unsubscribe_confirm", podcast.title)}</p>
@@ -136,6 +186,33 @@
 {/if}
 
 <style>
+  .skip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 8px 12px 8px 8px;
+    border: none;
+    border-radius: 12px;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--md-on-surface);
+  }
+  .skip > :global(.ms) {
+    color: var(--md-on-surface-variant);
+  }
+  .skip:hover {
+    background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  }
+  .skip-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .skip-form p {
+    margin: 0;
+  }
   .spin {
     width: 40px;
     display: grid;

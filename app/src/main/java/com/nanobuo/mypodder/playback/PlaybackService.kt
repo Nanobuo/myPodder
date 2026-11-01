@@ -93,6 +93,9 @@ class PlaybackService : MediaSessionService() {
      * dispositivo e la sincronizzazione la riporterebbe indietro.
      */
     private var positionDirty = false
+    /** Parte finale da saltare per il podcast in ascolto (0 = niente). */
+    private var currentOutroMs = 0L
+    private var skippingOutro = false
 
     override fun onCreate() {
         super.onCreate()
@@ -266,13 +269,17 @@ class PlaybackService : MediaSessionService() {
             .build()
     }
 
-    private fun resumePosition(item: EpisodeItem): Long {
+    private suspend fun resumePosition(item: EpisodeItem): Long {
         val ep = item.episode
-        return when {
+        val position = when {
             ep.completed -> 0
             ep.durationMs > 0 && ep.positionMs > ep.durationMs - 5_000 -> 0
             else -> ep.positionMs
         }
+        // Dall'inizio si parte dopo la sigla, se impostata per il podcast.
+        val intro = db.podcastDao().get(ep.podcastId)?.skipIntroMs ?: 0
+        val fits = ep.durationMs <= 0 || intro < ep.durationMs - 5_000
+        return if (intro > 0 && position < intro && fits) intro else position
     }
 
     // --- Eventi del player ---
@@ -346,6 +353,8 @@ class PlaybackService : MediaSessionService() {
         currentChapters = emptyList()
         current = null
         positionDirty = false
+        currentOutroMs = 0
+        skippingOutro = false
         scope.launch {
             if (previous != null && listened > 0) {
                 db.listeningDao().add(today(), previous.episode.id, previous.episode.podcastId, listened, content)
@@ -353,6 +362,7 @@ class PlaybackService : MediaSessionService() {
             if (id == null) return@launch
             val item = episodes.get(id) ?: return@launch
             current = item
+            currentOutroMs = db.podcastDao().get(item.episode.podcastId)?.skipOutroMs ?: 0
             shownArtwork = item.artwork
             settings.setLastEpisode(id)
             chaptersJob = scope.launch {
@@ -402,7 +412,24 @@ class PlaybackService : MediaSessionService() {
                 accumulate()
                 updateChapterArtwork()
                 if (SystemClock.elapsedRealtime() - lastFlush > 15_000) flush()
+                checkOutro()
             }
+        }
+    }
+
+    /**
+     * Arrivati alla parte finale da saltare (impostata per il podcast), l'episodio si chiude come
+     * se fosse finito: segnato come ascoltato e avanti con la coda.
+     */
+    private fun checkOutro() {
+        val outro = currentOutroMs
+        val duration = player.duration
+        if (outro <= 0 || skippingOutro || current == null || duration == C.TIME_UNSET) return
+        // Su episodi più corti della parte da saltare non si fa nulla.
+        if (duration <= outro + 5_000) return
+        if (player.currentPosition >= duration - outro) {
+            skippingOutro = true
+            scope.launch { onEnded() }
         }
     }
 
@@ -430,7 +457,8 @@ class PlaybackService : MediaSessionService() {
             pendingContentMs = 0
             db.listeningDao().add(today(), item.episode.id, item.episode.podcastId, listened, content)
         }
-        if (savePosition && positionDirty && player.playbackState != Player.STATE_ENDED && player.currentMediaItem != null) {
+        // Dopo il salto della parte finale l'episodio è già segnato come finito: la posizione non serve.
+        if (savePosition && positionDirty && !skippingOutro && player.playbackState != Player.STATE_ENDED && player.currentMediaItem != null) {
             episodes.savePosition(item.episode.id, player.currentPosition)
             // Finché si ascolta la posizione continua a cambiare; in pausa resta salvata così.
             positionDirty = player.isPlaying

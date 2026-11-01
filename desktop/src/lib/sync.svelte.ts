@@ -65,6 +65,8 @@ const K = {
   statsPulledUntil: "sync.statsPulledUntil",
   statsResetSeen: "sync.statsResetSeen",
   statsResetPending: "sync.statsResetPending",
+  skipPushedUntil: "sync.skipPushedUntil",
+  skipPulledUntil: "sync.skipPulledUntil",
 };
 
 /** Fuori da K: l'identificativo del computer resta anche uscendo dall'account. */
@@ -133,6 +135,7 @@ class SyncManager {
         await this.pullStates(token, newFeeds);
         await this.syncQueue(token);
         await this.syncStats(token);
+        await this.syncPodcastSettings(token, newFeeds);
       });
       this.lastSyncAt = Date.now();
       await kv.set(K.lastSyncAt, this.lastSyncAt);
@@ -483,6 +486,41 @@ class SyncManager {
       const items = (await episodesDb.queueKeys()).map((k) => ({ f: k.feedUrl, g: k.guid }));
       await this.upsert(token, "queue_state", "user_id", [{ user_id: this.session!.userId, items, updated_at: at }]);
       await kv.set(K.queueUpdatedAt, at);
+    }
+  }
+
+  // --- Salti di inizio e fine per podcast ---
+
+  private async syncPodcastSettings(token: string, newFeeds: Set<string>) {
+    try {
+      const start = Date.now();
+      const changedRows = await podcastsDb.settingsChangedSince(await num(K.skipPushedUntil));
+      const uid = this.session!.userId;
+      await this.upsert(token, "podcast_settings", "user_id,feed_url", changedRows.map((p) => ({
+        user_id: uid,
+        feed_url: p.feedUrl,
+        skip_intro_ms: p.skipIntroMs,
+        skip_outro_ms: p.skipOutroMs,
+        updated_at: p.settingsUpdatedAt,
+      })));
+      const last = changedRows.at(-1);
+      if (last) await kv.set(K.skipPushedUntil, Math.min(last.settingsUpdatedAt, start));
+
+      type Row = { feed_url: string; skip_intro_ms: number; skip_outro_ms: number; updated_at: number; synced_at?: number };
+      const pulled = await num(K.skipPulledUntil);
+      const rows = await this.rest<Row[]>(`podcast_settings?synced_at=gt.${Math.max(0, pulled - OVERLAP_MS)}&order=synced_at`, token);
+      for (const feed of newFeeds) {
+        rows.push(...(await this.rest<Row[]>(`podcast_settings?feed_url=eq.${encodeURIComponent(feed)}`, token)));
+      }
+      let newest = pulled;
+      for (const r of rows) {
+        await podcastsDb.applyRemoteSkip(r.feed_url, r.skip_intro_ms, r.skip_outro_ms, r.updated_at);
+        newest = Math.max(newest, r.synced_at ?? 0);
+      }
+      await kv.set(K.skipPulledUntil, newest);
+      if (rows.length) changed("podcasts");
+    } catch (e) {
+      if (!(e instanceof SupabaseError) || e.code !== 404) throw e;
     }
   }
 

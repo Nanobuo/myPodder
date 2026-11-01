@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.KeyboardType
 import com.nanobuo.mypodder.util.formatClock
-import com.nanobuo.mypodder.util.parseClockToMs
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -189,49 +188,70 @@ fun PodcastScreen(
     }
 }
 
-/** Durate di inizio e fine da saltare, scritte come secondi ("45") o minuti e secondi ("1:30"). */
+/**
+ * Durate di inizio e fine da saltare, ognuna con due caselle numeriche (minuti e secondi): così
+ * basta la tastiera numerica, che spesso non ha i due punti.
+ */
 @Composable
 private fun SkipDialog(introMs: Long, outroMs: Long, onDismiss: () -> Unit, onSave: (Long, Long) -> Unit) {
-    fun shown(ms: Long) = if (ms > 0) formatClock(ms) else ""
-    var intro by remember { mutableStateOf(shown(introMs)) }
-    var outro by remember { mutableStateOf(shown(outroMs)) }
-    fun parse(v: String): Long? = if (v.isBlank()) 0L else parseClockToMs(v.trim())
-    val introValue = parse(intro)
-    val outroValue = parse(outro)
+    fun minutes(ms: Long) = if (ms > 0) (ms / 60_000).toString() else ""
+    fun seconds(ms: Long) = if (ms > 0) ((ms / 1000) % 60).toString() else ""
+    var introMin by remember { mutableStateOf(minutes(introMs)) }
+    var introSec by remember { mutableStateOf(seconds(introMs)) }
+    var outroMin by remember { mutableStateOf(minutes(outroMs)) }
+    var outroSec by remember { mutableStateOf(seconds(outroMs)) }
+    fun total(min: String, sec: String) = ((min.toLongOrNull() ?: 0) * 60 + (sec.toLongOrNull() ?: 0)) * 1000
 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Rounded.ContentCut, null) },
         title = { Text(stringResource(R.string.skip_parts)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.skip_parts_hint))
-                OutlinedTextField(
-                    value = intro,
-                    onValueChange = { intro = it.filter { c -> c.isDigit() || c == ':' }.take(8) },
-                    label = { Text(stringResource(R.string.skip_intro)) },
-                    placeholder = { Text("0:45") },
-                    isError = introValue == null,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                OutlinedTextField(
-                    value = outro,
-                    onValueChange = { outro = it.filter { c -> c.isDigit() || c == ':' }.take(8) },
-                    label = { Text(stringResource(R.string.skip_outro)) },
-                    placeholder = { Text("1:00") },
-                    isError = outroValue == null,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
+                DurationFields(stringResource(R.string.skip_intro), introMin, introSec, { introMin = it }, { introSec = it })
+                DurationFields(stringResource(R.string.skip_outro), outroMin, outroSec, { outroMin = it }, { outroSec = it })
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = introValue != null && outroValue != null,
-                onClick = { onSave(introValue ?: 0, outroValue ?: 0) },
-            ) { Text(stringResource(R.string.save)) }
+            TextButton(onClick = { onSave(total(introMin, introSec), total(outroMin, outroSec)) }) {
+                Text(stringResource(R.string.save))
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun DurationFields(
+    label: String,
+    minutes: String,
+    seconds: String,
+    onMinutes: (String) -> Unit,
+    onSeconds: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = minutes,
+                onValueChange = { v -> onMinutes(v.filter(Char::isDigit).take(3)) },
+                label = { Text(stringResource(R.string.unit_minutes)) },
+                placeholder = { Text("0") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = seconds,
+                // I secondi oltre 59 vengono accettati e sommati: 90 s = 1 min 30 s.
+                onValueChange = { v -> onSeconds(v.filter(Char::isDigit).take(4)) },
+                label = { Text(stringResource(R.string.unit_seconds)) },
+                placeholder = { Text("0") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
 }

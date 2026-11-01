@@ -291,7 +291,9 @@
     <string name="skip_parts">Skip intro and outro</string>
     <string name="skip_parts_off">Off: tap to skip recurring intros or messages</string>
     <string name="skip_parts_summary">Intro %1$s · outro %2$s</string>
-    <string name="skip_parts_hint">Parts repeated in every episode, like theme songs or messages. Type seconds (45) or minutes and seconds (1:30); leave empty to skip nothing.</string>
+    <string name="skip_parts_hint">Parts repeated in every episode, like theme songs or messages. Leave empty or zero to skip nothing.</string>
     <string name="skip_intro">Skip at the start</string>
     <string name="skip_outro">Skip at the end</string>
+    <string name="unit_minutes">Minutes</string>
+    <string name="unit_seconds">Seconds</string>
 </resources>

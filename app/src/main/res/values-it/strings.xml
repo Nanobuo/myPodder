@@ -288,7 +288,9 @@
     <string name="skip_parts">Salta inizio e fine</string>
     <string name="skip_parts_off">Disattivato: tocca per saltare sigle o messaggi ricorrenti</string>
     <string name="skip_parts_summary">Inizio %1$s · fine %2$s</string>
-    <string name="skip_parts_hint">Parti che si ripetono in ogni episodio, come sigle o messaggi. Scrivi i secondi (45) o minuti e secondi (1:30); lascia vuoto per non saltare nulla.</string>
+    <string name="skip_parts_hint">Parti che si ripetono in ogni episodio, come sigle o messaggi. Lascia vuoto o a zero per non saltare nulla.</string>
     <string name="skip_intro">Salta all\'inizio</string>
     <string name="skip_outro">Salta alla fine</string>
+    <string name="unit_minutes">Minuti</string>
+    <string name="unit_seconds">Secondi</string>
 </resources>

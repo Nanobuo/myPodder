@@ -55,6 +55,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -305,6 +306,9 @@ fun PlayerScreen(
                 BadgedBox(badge = { if (queue.isNotEmpty()) Badge { Text(queue.size.toString()) } }) {
                     Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.nav_queue))
                 }
+            }
+            IconButton(onClick = viewModel::markPlayed) {
+                Icon(Icons.Rounded.DoneAll, stringResource(R.string.mark_played))
             }
             IconButton(onClick = viewModel::playNextInQueue, enabled = queue.isNotEmpty()) {
                 Icon(Icons.Rounded.SkipNext, stringResource(R.string.next_in_queue))

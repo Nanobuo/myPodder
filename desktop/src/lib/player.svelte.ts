@@ -242,6 +242,24 @@ class Player {
     updateSettings({ volume: this.audio.volume });
   }
 
+  /**
+   * Segna come ascoltato l'episodio nel player e passa al successivo in coda (che parte solo se
+   * si stava ascoltando); con la coda vuota il player si svuota.
+   */
+  async markPlayed() {
+    const item = this.current;
+    if (!item) return;
+    const wasPlaying = this.isPlaying;
+    // L'episodio è finito: la posizione corrente non va salvata.
+    this.positionDirty = false;
+    this.audio.pause();
+    await repo.setCompleted(item.id, true);
+    sync.requestSync();
+    const next = (await queueDb.ids()).find((id) => id !== item.id);
+    if (next == null) await this.stop();
+    else await this.load(next, { autoplay: wasPlaying });
+  }
+
   /** Ferma e svuota il player (es. episodio eliminato). */
   async stop() {
     await this.flush();

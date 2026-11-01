@@ -55,6 +55,7 @@
           {#if player.isBuffering && player.isPlaying}<Spinner size={40} color="var(--md-on-primary)" />{:else}<Icon name={player.isPlaying ? "pause" : "play_arrow"} fill size={44} />{/if}
         </button>
         <IconButton icon="forward_{[5, 10, 30].includes(settings.skipForwardSec) ? settings.skipForwardSec : 30}" label={t("skip_forward_seconds", settings.skipForwardSec)} size={56} iconSize={32} onclick={() => player.skipForward()} />
+        <IconButton icon="done_all" label={t("mark_played")} size={48} onclick={() => player.markPlayed()} />
         <IconButton icon="bedtime" label={t("sleep_timer")} size={48} fill={player.sleep.kind !== "off"} selected={player.sleep.kind !== "off"} onclick={() => (sleepOpen = true)} />
       </div>
     </div>

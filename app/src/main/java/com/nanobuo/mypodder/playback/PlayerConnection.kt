@@ -106,6 +106,13 @@ class PlayerConnection @Inject constructor(
         c.play()
     }
 
+    /** Carica un episodio nel player senza avviarlo. */
+    fun load(episodeId: Long) = withController { c ->
+        c.pause()
+        c.setMediaItem(MediaItem.Builder().setMediaId(episodeId.toString()).build())
+        c.prepare()
+    }
+
     fun togglePlayPause() = withController { c ->
         when {
             c.isPlaying -> c.pause()

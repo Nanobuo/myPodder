@@ -8,6 +8,7 @@ import com.nanobuo.mypodder.data.db.EpisodeItem
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.AppSettings
 import com.nanobuo.mypodder.data.settings.SettingsRepository
+import com.nanobuo.mypodder.data.sync.SyncManager
 import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.playback.SleepState
 import com.nanobuo.mypodder.playback.SleepTimer
@@ -35,6 +36,7 @@ class PlayerViewModel @Inject constructor(
     private val chapterRepository: ChapterRepository,
     private val sleepTimer: SleepTimer,
     private val settingsRepository: SettingsRepository,
+    private val sync: SyncManager,
 ) : ViewModel() {
 
     val nowPlaying = connection.state
@@ -84,6 +86,25 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun playFromQueue(id: Long) = connection.play(id)
+
+    /**
+     * Segna come ascoltato l'episodio nel player e passa al successivo in coda (che parte solo se
+     * si stava ascoltando); con la coda vuota il player si chiude.
+     */
+    fun markPlayed() {
+        val id = nowPlaying.value.episodeId ?: return
+        val wasPlaying = nowPlaying.value.isPlaying
+        val next = queue.value.firstOrNull()?.episode?.id
+        viewModelScope.launch {
+            episodes.setCompleted(id, true)
+            sync.requestSync()
+            when {
+                next == null -> connection.stop()
+                wasPlaying -> connection.play(next)
+                else -> connection.load(next)
+            }
+        }
+    }
 
     fun removeFromQueue(id: Long) {
         viewModelScope.launch { episodes.removeFromQueue(id) }

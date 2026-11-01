@@ -46,6 +46,7 @@
 
     <div class="right">
       <SpeedButton />
+      <IconButton icon="done_all" label={t("mark_played")} onclick={() => player.markPlayed()} />
       <IconButton
         icon="bedtime"
         label={t("sleep_timer")}

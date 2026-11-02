@@ -210,3 +210,34 @@ select {
   font-variant-numeric: tabular-nums;
   text-decoration: underline;
 }
+
+/* Onda al clic (vedi ripple in lib/motion.ts) */
+.ripple-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.14;
+  transform: scale(0);
+  animation: ripple-grow 0.45s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+.ripple-wave.out {
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
+}
+@keyframes ripple-grow {
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

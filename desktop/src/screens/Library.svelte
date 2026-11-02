@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import { app } from "../lib/app.svelte.ts";
   import { episodesDb, podcastsDb, type EpisodeItem, type PodcastWithNew } from "../lib/db.ts";
   import { t } from "../lib/i18n.ts";
@@ -16,6 +17,19 @@
   let podcasts = $state<PodcastWithNew[] | null>(null);
   let latest = $state<EpisodeItem[] | null>(null);
   let scroller = $state<HTMLElement>();
+
+  // Indicatore della scheda attiva, che scorre tra le due schede.
+  let tabEls = $state<HTMLButtonElement[]>([]);
+  let indicator = $state({ left: 0, width: 0 });
+  $effect(() => {
+    const el = tabEls[settings.libraryTab];
+    if (!el) return;
+    const place = () => (indicator = { left: el.offsetLeft, width: el.offsetWidth });
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   $effect(() => {
     void versions.podcasts;
@@ -76,12 +90,15 @@
 
     <div class="tabs" role="tablist">
       {#each [t("tab_podcasts"), t("tab_episodes")] as label, i (i)}
-        <button role="tab" class:active={settings.libraryTab === i} aria-selected={settings.libraryTab === i} onclick={() => updateSettings({ libraryTab: i })}>
+        <button use:ripple bind:this={tabEls[i]} role="tab" class:active={settings.libraryTab === i} aria-selected={settings.libraryTab === i} onclick={() => updateSettings({ libraryTab: i })}>
           {label}
         </button>
       {/each}
+      <span class="tab-indicator" style:left="{indicator.left}px" style:width="{indicator.width}px"></span>
     </div>
 
+    {#key `${settings.libraryTab}:${settings.libraryGrid}`}
+    <div class="tab-body" class:from-right={settings.libraryTab === 1}>
     {#if settings.libraryTab === 0}
       {#if podcasts == null}
         <div class="empty"><Spinner /></div>
@@ -98,7 +115,7 @@
         <div class="grid">
           {#each podcasts as p (p.id)}
             {@const b = badge(p.newCount)}
-            <button class="tile" onclick={() => nav.navigate({ name: "podcast", id: p.id })} title={p.title}>
+            <button use:ripple={{ target: ".art" }} class="tile" onclick={() => nav.navigate({ name: "podcast", id: p.id })} title={p.title}>
               <div class="art">
                 <Cover src={p.imageUrl} size="fill" radius={16} />
                 {#if b != null}<span class="badge" class:dot={b === ""}>{b}</span>{/if}
@@ -111,7 +128,7 @@
         <div class="list">
           {#each podcasts as p (p.id)}
             {@const b = badge(p.newCount)}
-            <button class="list-row" onclick={() => nav.navigate({ name: "podcast", id: p.id })}>
+            <button use:ripple class="list-row" onclick={() => nav.navigate({ name: "podcast", id: p.id })}>
               <Cover src={p.imageUrl} size={64} radius={12} />
               <span class="text">
                 <span class="title-medium clamp-1">{p.title}</span>
@@ -131,6 +148,8 @@
         {#each latest as e (e.id)}<EpisodeRow item={e} />{/each}
       </div>
     {/if}
+    </div>
+    {/key}
   </div>
 </div>
 
@@ -158,15 +177,36 @@
     font-size: 14px;
     color: var(--md-on-surface-variant);
     cursor: pointer;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
+    position: relative;
+    border-radius: 12px 12px 0 0;
+    transition: color 0.2s;
   }
   .tabs button:hover {
     color: var(--md-on-surface);
   }
   .tabs button.active {
     color: var(--md-primary);
-    border-bottom-color: var(--md-primary);
+  }
+  .tab-indicator {
+    position: absolute;
+    bottom: -1px;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--md-primary);
+    transition: left 0.3s cubic-bezier(0.2, 0, 0, 1), width 0.3s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .tab-body {
+    animation: tab-in 0.28s cubic-bezier(0.2, 0, 0, 1);
+    --from: -24px;
+  }
+  .tab-body.from-right {
+    --from: 24px;
+  }
+  @keyframes tab-in {
+    from {
+      opacity: 0;
+      transform: translateX(var(--from));
+    }
   }
   .grid {
     display: grid;
@@ -186,7 +226,11 @@
   }
   .art {
     position: relative;
-    transition: transform 0.15s;
+    border-radius: 16px;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .tile:active .art {
+    transform: scale(0.96);
   }
   .tile:hover .art {
     transform: translateY(-2px);
@@ -237,6 +281,7 @@
     border-radius: 16px;
     cursor: pointer;
     color: var(--md-on-surface);
+    position: relative;
   }
   .list-row:hover {
     background: var(--md-surface-container-low);

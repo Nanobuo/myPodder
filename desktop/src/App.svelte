@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "./lib/motion.ts";
   import { onMount } from "svelte";
   import { app } from "./lib/app.svelte.ts";
   import { t, type StringKey } from "./lib/i18n.ts";
@@ -119,7 +120,7 @@
       <div class="logo"><Wordmark height={19} /></div>
       {#each items as item (item.route)}
         {@const active = nav.section === item.route}
-        <button class="rail-item" class:active onclick={() => nav.navigate({ name: item.route } as Route)} title={t(item.label)}>
+        <button use:ripple={{ target: ".indicator" }} class="rail-item" class:active onclick={() => nav.navigate({ name: item.route } as Route)} title={t(item.label)}>
           <span class="indicator">
             <span class="badged">
               <Icon name={item.icon} fill={active} />
@@ -130,7 +131,7 @@
         </button>
       {/each}
       <div class="spacer"></div>
-      <button class="rail-item" class:active={nav.section === "settings"} onclick={() => nav.navigate({ name: "settings" })} title={t("settings")}>
+      <button use:ripple={{ target: ".indicator" }} class="rail-item" class:active={nav.section === "settings"} onclick={() => nav.navigate({ name: "settings" })} title={t("settings")}>
         <span class="indicator"><Icon name="settings" fill={nav.section === "settings"} /></span>
         <span class="label-medium">{t("settings")}</span>
       </button>
@@ -138,7 +139,7 @@
 
     <main class="content">
       {#key nav.stack.length + ":" + JSON.stringify(nav.current)}
-        <div class="page">
+        <div class="page {nav.direction}">
           {#if nav.current.name === "library"}<Library />
           {:else if nav.current.name === "search"}<Search focus={nav.current.focus} />
           {:else if nav.current.name === "queue"}<Queue />
@@ -209,6 +210,7 @@
     width: 56px;
     height: 32px;
     border-radius: 16px;
+    position: relative;
     transition: background-color 0.2s;
   }
   .badged {
@@ -224,6 +226,19 @@
   .rail-item.active .indicator {
     background: var(--md-secondary-container);
     color: var(--md-on-secondary-container);
+    animation: pill 0.35s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .rail-item :global(.ms) {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .rail-item:active :global(.ms) {
+    transform: scale(0.88);
+  }
+  @keyframes pill {
+    from {
+      transform: scaleX(0.4);
+      opacity: 0.4;
+    }
   }
   .spacer {
     flex: 1;
@@ -239,12 +254,22 @@
   }
   .page {
     height: 100%;
-    animation: enter 0.18s ease-out;
+    animation: enter 0.32s cubic-bezier(0.2, 0, 0, 1);
+    --from-x: 0px;
+    --from-y: 12px;
+  }
+  .page.forward {
+    --from-x: 40px;
+    --from-y: 0px;
+  }
+  .page.back {
+    --from-x: -40px;
+    --from-y: 0px;
   }
   @keyframes enter {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translate(var(--from-x), var(--from-y));
     }
   }
 </style>

@@ -12,6 +12,7 @@
   import Spinner from "../components/Spinner.svelte";
   import CountBadge from "../components/CountBadge.svelte";
   import { queueCount } from "../lib/live.svelte.ts";
+  import { ripple } from "../lib/motion.ts";
 
   let sleepOpen = $state(false);
   const item = $derived(player.current);
@@ -19,7 +20,7 @@
 
 <footer class="bar" class:empty={!item}>
   {#if item}
-    <button class="info" onclick={() => (nav.playerOpen = !nav.playerOpen)} title={t("open_player")}>
+    <button use:ripple class="info" onclick={() => (nav.playerOpen = !nav.playerOpen)} title={t("open_player")}>
       <Cover src={player.artwork} size={56} radius={10} />
       <div class="text">
         <div class="title-small clamp-1">{item.title}</div>
@@ -32,7 +33,7 @@
     <div class="center">
       <div class="controls">
         <IconButton icon="replay_{[5, 10, 30].includes(settings.skipBackSec) ? settings.skipBackSec : 10}" label={t("skip_back_seconds", settings.skipBackSec)} onclick={() => player.skipBack()} />
-        <button class="play" onclick={() => player.togglePlayPause()} aria-label={player.isPlaying ? t("pause") : t("play")} title={player.isPlaying ? t("pause") : t("play")}>
+        <button use:ripple class="play" onclick={() => player.togglePlayPause()} aria-label={player.isPlaying ? t("pause") : t("play")} title={player.isPlaying ? t("pause") : t("play")}>
           {#if player.isBuffering && player.isPlaying}
             <Spinner size={28} color="var(--md-on-primary)" />
           {:else}
@@ -111,6 +112,7 @@
     text-align: left;
     border-radius: 14px;
     cursor: pointer;
+    position: relative;
   }
   .info:hover {
     background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
@@ -139,10 +141,14 @@
     background: var(--md-primary);
     color: var(--md-on-primary);
     cursor: pointer;
-    transition: border-radius 0.2s;
+    position: relative;
+    transition: border-radius 0.25s cubic-bezier(0.2, 0, 0, 1), transform 0.15s;
   }
   .play:hover {
     border-radius: 24px;
+  }
+  .play:active {
+    transform: scale(0.92);
   }
   .right {
     display: flex;

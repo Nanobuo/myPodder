@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import Icon from "./Icon.svelte";
 
   let {
@@ -25,6 +26,7 @@
 </script>
 
 <button
+  use:ripple
   class="icon-button {variant}"
   class:selected
   style:width="{size}px"

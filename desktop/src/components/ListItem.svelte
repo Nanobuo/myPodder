@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import type { Snippet } from "svelte";
   import Icon from "./Icon.svelte";
 
@@ -22,7 +23,7 @@
 </script>
 
 {#if onclick}
-  <button class="list-item clickable" class:danger {disabled} {onclick}>
+  <button use:ripple class="list-item clickable" class:danger {disabled} {onclick}>
     {@render body()}
   </button>
 {:else}
@@ -56,6 +57,7 @@
     color: var(--md-on-surface-variant);
   }
   .clickable {
+    position: relative;
     cursor: pointer;
   }
   .clickable:hover:not(:disabled) {

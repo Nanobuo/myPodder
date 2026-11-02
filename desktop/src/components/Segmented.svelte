@@ -1,4 +1,5 @@
 <script lang="ts" generics="T">
+  import { ripple } from "../lib/motion.ts";
   import Icon from "./Icon.svelte";
 
   let { options, selected, label, onselect }: { options: T[]; selected: T; label: (v: T) => string; onselect: (v: T) => void } =
@@ -7,7 +8,7 @@
 
 <div class="segmented" role="radiogroup">
   {#each options as option, i (i)}
-    <button class:selected={option === selected} role="radio" aria-checked={option === selected} onclick={() => onselect(option)}>
+    <button use:ripple class:selected={option === selected} role="radio" aria-checked={option === selected} onclick={() => onselect(option)}>
       {#if option === selected}<Icon name="check" size={18} />{/if}
       {label(option)}
     </button>
@@ -36,6 +37,7 @@
     cursor: pointer;
     color: var(--md-on-surface);
     white-space: nowrap;
+    position: relative;
   }
   button:first-child {
     border-left: none;

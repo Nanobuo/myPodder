@@ -13,6 +13,7 @@
   import SleepDialog from "./SleepDialog.svelte";
   import SpeedButton from "./SpeedButton.svelte";
   import Spinner from "../components/Spinner.svelte";
+  import { rise, ripple } from "../lib/motion.ts";
 
   let sleepOpen = $state(false);
   let chaptersOpen = $state(true);
@@ -32,7 +33,7 @@
   });
 </script>
 
-<section class="player-view">
+<section class="player-view" transition:rise|global={{ distance: 80 }}>
   <div class="top">
     <IconButton icon="keyboard_arrow_down" label={t("close")} onclick={() => (nav.playerOpen = false)} />
     <span class="label-large muted">{t("now_playing")}</span>
@@ -51,7 +52,7 @@
       <div class="controls">
         <SpeedButton large />
         <IconButton icon="replay_{[5, 10, 30].includes(settings.skipBackSec) ? settings.skipBackSec : 10}" label={t("skip_back_seconds", settings.skipBackSec)} size={56} iconSize={32} onclick={() => player.skipBack()} />
-        <button class="play" onclick={() => player.togglePlayPause()} aria-label={player.isPlaying ? t("pause") : t("play")}>
+        <button use:ripple class="play" onclick={() => player.togglePlayPause()} aria-label={player.isPlaying ? t("pause") : t("play")}>
           {#if player.isBuffering && player.isPlaying}<Spinner size={40} color="var(--md-on-primary)" />{:else}<Icon name={player.isPlaying ? "pause" : "play_arrow"} fill size={44} />{/if}
         </button>
         <IconButton icon="forward_{[5, 10, 30].includes(settings.skipForwardSec) ? settings.skipForwardSec : 30}" label={t("skip_forward_seconds", settings.skipForwardSec)} size={56} iconSize={32} onclick={() => player.skipForward()} />
@@ -75,7 +76,7 @@
           {#if chaptersOpen}
             <div class="chapters" bind:this={chapterList}>
               {#each player.chapters as c, i (c.startMs)}
-                <button class="chapter" class:active={i === player.chapterIndex} data-i={i} onclick={() => player.seekTo(c.startMs)}>
+                <button use:ripple class="chapter" class:active={i === player.chapterIndex} data-i={i} onclick={() => player.seekTo(c.startMs)}>
                   <span class="time">{formatClock(c.startMs)}</span>
                   <span class="clamp-2">{c.title}</span>
                 </button>
@@ -94,7 +95,7 @@
           <p class="body-small muted pad">{t("queue_empty")}</p>
         {:else}
           {#each upNext as e (e.id)}
-            <button class="next" onclick={() => player.play(e.id)}>
+            <button use:ripple class="next" onclick={() => player.play(e.id)}>
               <Cover src={artworkOf(e)} size={40} radius={8} />
               <span class="text">
                 <span class="body-medium clamp-1">{e.title}</span>
@@ -119,14 +120,7 @@
     display: flex;
     flex-direction: column;
     background: linear-gradient(to bottom, var(--md-surface-container-low), var(--md-surface));
-    animation: up 0.22s ease-out;
     overflow: hidden;
-  }
-  @keyframes up {
-    from {
-      transform: translateY(40px);
-      opacity: 0;
-    }
   }
   .top {
     display: flex;
@@ -191,10 +185,14 @@
     background: var(--md-primary);
     color: var(--md-on-primary);
     cursor: pointer;
-    transition: border-radius 0.25s;
+    position: relative;
+    transition: border-radius 0.25s cubic-bezier(0.2, 0, 0, 1), transform 0.15s;
   }
   .play:hover {
     border-radius: 44px;
+  }
+  .play:active {
+    transform: scale(0.94);
   }
   .side {
     display: flex;
@@ -237,6 +235,7 @@
     overflow-y: auto;
   }
   .chapter {
+    position: relative;
     display: flex;
     gap: 12px;
     width: 100%;
@@ -263,6 +262,7 @@
     color: var(--md-on-surface-variant);
   }
   .next {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;

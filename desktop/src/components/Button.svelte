@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import type { Snippet } from "svelte";
   import Icon from "./Icon.svelte";
 
@@ -19,7 +20,7 @@
   } = $props();
 </script>
 
-<button class="btn {variant}" class:with-icon={!!icon} {disabled} {onclick} {title}>
+<button use:ripple class="btn {variant}" class:with-icon={!!icon} {disabled} {onclick} {title}>
   {#if icon}<Icon name={icon} size={18} />{/if}
   <span>{@render children()}</span>
 </button>

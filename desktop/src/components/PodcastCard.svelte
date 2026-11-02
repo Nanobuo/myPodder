@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import type { SearchResult } from "../lib/search.ts";
   import { nav } from "../lib/store.svelte.ts";
   import Cover from "./Cover.svelte";
@@ -7,6 +8,7 @@
 </script>
 
 <button
+  use:ripple={{ target: ".art" }}
   class="card"
   style:width={width ? `${width}px` : undefined}
   title={result.title}
@@ -35,7 +37,11 @@
   }
   .art {
     position: relative;
-    transition: transform 0.15s;
+    border-radius: 16px;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .card:active .art {
+    transform: scale(0.96);
   }
   .card:hover .art {
     transform: translateY(-2px);

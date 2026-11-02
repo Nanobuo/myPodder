@@ -32,6 +32,8 @@ class Navigator {
   playerOpen = $state(false);
   /** Incrementato quando si clicca la voce già attiva: le liste tornano in cima. */
   reselect = $state(0);
+  /** Verso dell'ultimo cambio di schermata, per l'animazione. */
+  direction = $state<"forward" | "back" | "switch">("switch");
 
   get current(): Route {
     return this.stack[this.stack.length - 1];
@@ -48,14 +50,17 @@ class Navigator {
         this.reselect++;
         return;
       }
+      this.direction = "switch";
       this.stack = [route];
     } else {
+      this.direction = "forward";
       this.stack = [...this.stack, route];
     }
   }
 
   /** Sostituisce la schermata corrente (es. anteprima → podcast dopo l'iscrizione). */
   replace(route: Route) {
+    this.direction = "switch";
     this.stack = [...this.stack.slice(0, -1), route];
   }
 
@@ -65,10 +70,12 @@ class Navigator {
       return true;
     }
     if (this.stack.length > 1) {
+      this.direction = "back";
       this.stack = this.stack.slice(0, -1);
       return true;
     }
     if (this.stack[0].name !== "library") {
+      this.direction = "switch";
       this.stack = [{ name: "library" }];
       return true;
     }

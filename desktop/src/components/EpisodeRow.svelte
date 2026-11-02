@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import { artworkOf, DownloadState, type EpisodeItem } from "../lib/db.ts";
   import { actions } from "../lib/actions.ts";
   import { progress } from "../lib/downloads.svelte.ts";
@@ -60,6 +61,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div
+  use:ripple
   class="episode-row"
   class:dim={dimPlayed && item.completed}
   class:current={isCurrent}
@@ -93,6 +95,7 @@
     {#if fraction > 0}<div class="bar"><div style:width="{fraction * 100}%"></div></div>{/if}
   </div>
   <button
+    use:ripple
     class="play"
     class:active={isCurrent}
     title={playing ? t("pause") : t("play")}
@@ -116,6 +119,7 @@
     padding: 10px 12px;
     border-radius: 16px;
     cursor: pointer;
+    position: relative;
     transition: background-color 0.12s;
   }
   .episode-row:hover {
@@ -179,7 +183,11 @@
     cursor: pointer;
     background: var(--md-secondary-container);
     color: var(--md-on-secondary-container);
+    position: relative;
     transition: border-radius 0.2s, background-color 0.2s;
+  }
+  .play:active {
+    border-radius: 14px;
   }
   .play.active {
     background: var(--md-primary);

@@ -144,8 +144,8 @@
   <Dialog title={t("skip_parts")} icon="content_cut" onclose={() => (editSkip = false)}>
     <div class="skip-form">
       <p>{t("skip_parts_hint")}</p>
-      <TextField bind:value={introText} label={t("skip_intro")} icon="first_page" autofocus onenter={saveSkip} />
-      <TextField bind:value={outroText} label={t("skip_outro")} icon="last_page" onenter={saveSkip} />
+      <TextField bind:value={introText} label={t("skip_intro")} placeholder="0:00" icon="first_page" autofocus onenter={saveSkip} />
+      <TextField bind:value={outroText} label={t("skip_outro")} placeholder="0:00" icon="last_page" onenter={saveSkip} />
     </div>
     {#snippet actions()}
       <Button variant="text" onclick={() => (editSkip = false)}>{t("cancel")}</Button>

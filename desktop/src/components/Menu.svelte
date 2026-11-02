@@ -11,9 +11,11 @@
 </script>
 
 <script lang="ts">
+  import { ripple } from "../lib/motion.ts";
   import IconButton from "./IconButton.svelte";
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n.ts";
+  import { unfold } from "../lib/motion.ts";
 
   let { items, icon = "more_vert", label = t("more_options") }: { items: MenuItem[]; icon?: string; label?: string } = $props();
   let open = $state(false);
@@ -40,9 +42,10 @@
 </div>
 
 {#if open}
-  <div class="menu" class:up={pos.up} style:top="{pos.top}px" style:left="{pos.left}px" role="menu">
+  <div class="menu" transition:unfold={{ up: pos.up }} class:up={pos.up} style:top="{pos.top}px" style:left="{pos.left}px" role="menu">
     {#each items as item (item.label)}
       <button
+        use:ripple
         class="item"
         class:danger={item.danger}
         role="menuitem"
@@ -73,10 +76,11 @@
     background: var(--md-surface-container);
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
     z-index: 90;
-    animation: appear 0.12s ease-out;
+    transform-origin: top right;
   }
   .menu.up {
     transform: translate(-100%, -100%);
+    transform-origin: bottom right;
   }
   .item {
     display: flex;
@@ -92,6 +96,7 @@
     color: var(--md-on-surface);
     font-size: 14px;
     line-height: 20px;
+    position: relative;
   }
   .item + .item {
     margin-top: 2px;
@@ -115,8 +120,5 @@
   .danger,
   .danger :global(.ms) {
     color: var(--md-error);
-  }
-  @keyframes appear {
-    from { opacity: 0; }
   }
 </style>

@@ -51,7 +51,7 @@ export function ripple(node: HTMLElement, opts: { target?: string; disabled?: bo
   function down(e: PointerEvent) {
     if (options.disabled || e.button !== 0 || reduced()) return;
     if ((node as HTMLButtonElement).disabled) return;
-    const inner = (e.target as Element | null)?.closest("button, a, input, [role=menu]");
+    const inner = (e.target as Element | null)?.closest("button, a, input, [role=menu], [data-no-ripple]");
     if (inner && inner !== node && node.contains(inner)) return;
     const host = (options.target ? node.querySelector<HTMLElement>(options.target) : null) ?? node;
     const rect = host.getBoundingClientRect();

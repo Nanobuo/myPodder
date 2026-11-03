@@ -255,9 +255,21 @@ class Player {
     this.audio.pause();
     await repo.setCompleted(item.id, true);
     sync.requestSync();
-    const next = (await queueDb.ids()).find((id) => id !== item.id);
+    const next = await this.nextId();
     if (next == null) await this.stop();
     else await this.load(next, { autoplay: wasPlaying });
+  }
+
+  /** Prossimo episodio in coda, escluso quello nel player. */
+  private async nextId(): Promise<number | null> {
+    const currentId = this.current?.id;
+    return (await queueDb.ids()).find((id) => id !== currentId) ?? null;
+  }
+
+  /** Passa al prossimo episodio in coda e lo fa partire; quello in corso resta a metà. */
+  async playNext() {
+    const next = await this.nextId();
+    if (next != null) await this.play(next);
   }
 
   /** Ferma e svuota il player (es. episodio eliminato). */
@@ -342,7 +354,7 @@ class Player {
     sync.requestSync();
     const stopHere = this.sleep.kind === "endOfEpisode";
     if (stopHere) this.cancelSleep();
-    const next = await repo.nextInQueue();
+    const next = await this.nextId();
     if (next == null) {
       // Coda finita: niente più da riprodurre.
       await this.stop();

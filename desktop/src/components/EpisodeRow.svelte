@@ -17,8 +17,15 @@
     showPodcast = true,
     dimPlayed = false,
     showDescription = false,
-    draggable = false,
-  }: { item: EpisodeItem; showPodcast?: boolean; dimPlayed?: boolean; showDescription?: boolean; draggable?: boolean } = $props();
+    ondragstart,
+  }: {
+    item: EpisodeItem;
+    showPodcast?: boolean;
+    dimPlayed?: boolean;
+    showDescription?: boolean;
+    /** Se presente, la riga mostra la maniglia per riordinarla (es. nella coda). */
+    ondragstart?: (e: PointerEvent) => void;
+  } = $props();
 
   const isCurrent = $derived(player.current?.id === item.id);
   const playing = $derived(isCurrent && player.isPlaying);
@@ -71,7 +78,20 @@
     actions.togglePlay(item.id);
   }}
 >
-  {#if draggable}<span class="handle" title={t("reorder")}><Icon name="drag_indicator" /></span>{/if}
+  {#if ondragstart}
+    <span
+      class="handle"
+      data-no-ripple
+      title={t("reorder")}
+      onpointerdown={(e) => {
+        e.stopPropagation();
+        ondragstart(e);
+      }}
+      onclick={(e) => e.stopPropagation()}
+    >
+      <Icon name="drag_indicator" />
+    </span>
+  {/if}
   <Cover src={artworkOf(item)} size={64} radius={10} />
   <div class="text">
     {#if showPodcast}<div class="podcast label-medium muted clamp-1">{item.podcastTitle}</div>{/if}
@@ -135,6 +155,14 @@
     color: var(--md-on-surface-variant);
     cursor: grab;
     display: flex;
+    align-self: stretch;
+    align-items: center;
+    padding: 0 4px;
+    margin-left: -4px;
+    touch-action: none;
+  }
+  .handle:active {
+    cursor: grabbing;
   }
   .text {
     flex: 1;

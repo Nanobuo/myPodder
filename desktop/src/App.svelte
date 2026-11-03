@@ -174,7 +174,7 @@
   .shell {
     height: 100%;
     display: grid;
-    grid-template-columns: 96px 1fr;
+    grid-template-columns: 112px 1fr;
     grid-template-rows: 1fr auto;
     grid-template-areas: "rail content" "player player";
   }
@@ -189,6 +189,7 @@
     overflow-y: auto;
   }
   .logo {
+    padding: 0 14px;
     margin-bottom: 20px;
     color: var(--md-on-surface);
   }

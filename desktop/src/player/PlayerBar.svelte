@@ -11,6 +11,7 @@
   import SpeedButton from "./SpeedButton.svelte";
   import Spinner from "../components/Spinner.svelte";
   import CountBadge from "../components/CountBadge.svelte";
+  import Marquee from "../components/Marquee.svelte";
   import { queueCount } from "../lib/live.svelte.ts";
   import { ripple } from "../lib/motion.ts";
 
@@ -23,10 +24,8 @@
     <button use:ripple class="info" onclick={() => (nav.playerOpen = !nav.playerOpen)} title={t("open_player")}>
       <Cover src={player.artwork} size={56} radius={10} />
       <div class="text">
-        <div class="title-small clamp-1">{item.title}</div>
-        <div class="body-small muted clamp-1">
-          {[player.currentChapter?.title, item.podcastTitle].filter(Boolean).join(" · ")}
-        </div>
+        <Marquee class="title-small" text={item.title} />
+        <Marquee class="body-small muted" text={[player.currentChapter?.title, item.podcastTitle].filter(Boolean).join(" · ")} />
       </div>
     </button>
 
@@ -48,6 +47,7 @@
     <div class="right">
       <SpeedButton />
       <IconButton icon="done_all" label={t("mark_played")} onclick={() => player.markPlayed()} />
+      <IconButton icon="skip_next" label={t("next_in_queue")} disabled={queueCount(item.id) === 0} onclick={() => player.playNext()} />
       <IconButton
         icon="bedtime"
         label={t("sleep_timer")}
@@ -118,6 +118,7 @@
     background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
   }
   .text {
+    flex: 1;
     min-width: 0;
   }
   .center {

@@ -9,6 +9,8 @@ import { sync } from "./sync.svelte.ts";
 import { t } from "./i18n.ts";
 
 const FADE_MS = 10_000;
+/** Sotto questa posizione l'episodio è considerato appena iniziato e non torna in coda. */
+const MIN_PROGRESS_MS = 10_000;
 
 export type SleepState = { kind: "off" } | { kind: "timer"; endsAt: number } | { kind: "endOfEpisode" };
 
@@ -185,12 +187,19 @@ class Player {
     if ((await queueDb.ids()).includes(id)) await repo.removeFromQueue(id);
   }
 
-  /** Riproduce un episodio, opzionalmente da una posizione precisa (es. un capitolo). */
-  async play(id: number, startMs?: number) {
+  /**
+   * Riproduce un episodio, opzionalmente da una posizione precisa (es. un capitolo).
+   * Con `requeueCurrent` l'episodio lasciato a metà torna in cima alla coda, per riprenderlo dopo.
+   */
+  async play(id: number, startMs?: number, requeueCurrent = true) {
     if (this.current?.id === id && !this.audio.ended) {
       if (startMs != null) this.seekTo(startMs);
       await this.audio.play().catch(() => undefined);
       return;
+    }
+    const previous = this.current;
+    if (requeueCurrent && previous && !previous.completed && !this.audio.ended && this.position >= MIN_PROGRESS_MS) {
+      await repo.playNext(previous.id);
     }
     await this.load(id, { startMs, autoplay: true });
   }
@@ -269,7 +278,7 @@ class Player {
   /** Passa al prossimo episodio in coda e lo fa partire; quello in corso resta a metà. */
   async playNext() {
     const next = await this.nextId();
-    if (next != null) await this.play(next);
+    if (next != null) await this.play(next, undefined, false);
   }
 
   /** Ferma e svuota il player (es. episodio eliminato). */

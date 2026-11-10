@@ -78,7 +78,7 @@ class PlayerViewModel @Inject constructor(
     fun setSpeed(speed: Float) = connection.setSpeed(speed)
 
     fun playNextInQueue() {
-        queue.value.firstOrNull()?.let { connection.play(it.episode.id) }
+        queue.value.firstOrNull()?.let { connection.play(it.episode.id, requeueCurrent = false) }
     }
 
     fun toggleTimeDisplay() {
@@ -100,7 +100,7 @@ class PlayerViewModel @Inject constructor(
             sync.requestSync()
             when {
                 next == null -> connection.stop()
-                wasPlaying -> connection.play(next)
+                wasPlaying -> connection.play(next, requeueCurrent = false)
                 else -> connection.load(next)
             }
         }

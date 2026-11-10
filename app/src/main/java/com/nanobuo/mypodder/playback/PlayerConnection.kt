@@ -93,12 +93,23 @@ class PlayerConnection @Inject constructor(
         }
     }
 
-    /** Riproduce un episodio, opzionalmente da una posizione precisa (es. un capitolo). */
-    fun play(episodeId: Long, startMs: Long? = null) = withController { c ->
+    /**
+     * Riproduce un episodio, opzionalmente da una posizione precisa (es. un capitolo).
+     * Con [requeueCurrent] l'episodio lasciato a metà torna in cima alla coda, per riprenderlo dopo.
+     */
+    fun play(episodeId: Long, startMs: Long? = null, requeueCurrent: Boolean = true) = withController { c ->
         if (c.currentMediaItem?.mediaId == episodeId.toString() && c.playbackState != Player.STATE_ENDED) {
             if (startMs != null) c.seekTo(startMs)
             c.play()
             return@withController
+        }
+        val previous = c.currentMediaItem?.mediaId?.toLongOrNull()
+        if (requeueCurrent && previous != null && c.playbackState != Player.STATE_ENDED) {
+            val positionMs = c.currentPosition
+            appScope.launch {
+                val item = episodes.get(previous) ?: return@launch
+                if (!item.episode.completed && positionMs >= MIN_PROGRESS_MS) episodes.playNext(previous)
+            }
         }
         val item = MediaItem.Builder().setMediaId(episodeId.toString()).build()
         if (startMs != null) c.setMediaItem(item, startMs) else c.setMediaItem(item)
@@ -215,5 +226,10 @@ class PlayerConnection @Inject constructor(
                 ?: meta.durationMs?.takeIf { it > 0 } ?: 0,
             speed = c.playbackParameters.speed,
         )
+    }
+
+    private companion object {
+        /** Sotto questa posizione l'episodio è considerato appena iniziato e non torna in coda. */
+        const val MIN_PROGRESS_MS = 10_000L
     }
 }

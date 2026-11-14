@@ -157,6 +157,7 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int, openSettingsR
         LocalEpisodeActions provides viewModel,
         LocalPlaybackHighlight provides PlaybackHighlight(nowPlaying.episodeId, nowPlaying.isPlaying, queueIds),
     ) {
+        val currentAd by viewModel.currentAd.collectAsStateWithLifecycle(initialValue = null)
         Scaffold(
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
@@ -169,6 +170,8 @@ fun MyPodderApp(viewModel: MainViewModel, openPlayerRequests: Int, openSettingsR
                         MiniPlayer(
                             state = nowPlaying,
                             connection = viewModel.player,
+                            currentAd = currentAd,
+                            onSkipAd = viewModel::skipAd,
                             onOpen = { nav.navigate(PlayerRoute) { launchSingleTop = true } },
                         )
                     }

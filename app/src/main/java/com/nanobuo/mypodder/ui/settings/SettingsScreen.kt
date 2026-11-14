@@ -1,5 +1,6 @@
 package com.nanobuo.mypodder.ui.settings
 
+import com.nanobuo.mypodder.data.ads.AdRepository
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.clickable
@@ -70,6 +71,7 @@ class SettingsViewModel @Inject constructor(
     private val updates: UpdateManager,
     podcasts: PodcastRepository,
     val sync: SyncManager,
+    private val ads: AdRepository,
 ) : ViewModel() {
     val settings = repo.state
     val opmlStatus = opml.status
@@ -78,6 +80,14 @@ class SettingsViewModel @Inject constructor(
 
     fun update(block: suspend SettingsRepository.() -> Unit) {
         viewModelScope.launch { repo.block() }
+    }
+
+    fun setAdDetection(on: Boolean) {
+        viewModelScope.launch {
+            repo.setAdDetection(on)
+            // Gli episodi già scaricati vengono analizzati subito.
+            if (on) ads.schedulePending()
+        }
     }
 
     val updateState = updates.state
@@ -185,6 +195,16 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 s.autoDownloadCount,
                 { it.toString() },
             ) { viewModel.update { setAutoDownloadCount(it) } }
+
+            Section(stringResource(R.string.settings_ads))
+            SwitchRow(stringResource(R.string.ad_detection), stringResource(R.string.ad_detection_summary), s.adDetection) { v ->
+                viewModel.setAdDetection(v)
+            }
+            if (s.adDetection) {
+                SwitchRow(stringResource(R.string.ad_compare), stringResource(R.string.ad_compare_summary), s.adCompareDownload) { v ->
+                    viewModel.update { setAdCompareDownload(v) }
+                }
+            }
 
             Section(stringResource(R.string.settings_feeds))
             val refreshLabels = mapOf(

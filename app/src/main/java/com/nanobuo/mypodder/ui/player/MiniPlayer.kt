@@ -1,5 +1,7 @@
 package com.nanobuo.mypodder.ui.player
 
+import com.nanobuo.mypodder.ui.components.SkipAdButton
+import com.nanobuo.mypodder.data.ads.AdRange
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.basicMarquee
@@ -40,7 +42,13 @@ import com.nanobuo.mypodder.ui.components.Artwork
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun MiniPlayer(state: NowPlaying, connection: PlayerConnection, onOpen: () -> Unit) {
+fun MiniPlayer(
+    state: NowPlaying,
+    connection: PlayerConnection,
+    currentAd: AdRange?,
+    onSkipAd: (AdRange) -> Unit,
+    onOpen: () -> Unit,
+) {
     val position by connection.positionFlow(1_000).collectAsStateWithLifecycle(initialValue = connection.position)
     val progress = if (state.durationMs > 0) (position.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
 
@@ -87,6 +95,13 @@ fun MiniPlayer(state: NowPlaying, connection: PlayerConnection, onOpen: () -> Un
                     Icon(Icons.Rounded.FastForward, stringResource(R.string.skip_forward))
                 }
             }
+            SkipAdButton(
+                visible = currentAd != null,
+                onClick = { currentAd?.let(onSkipAd) },
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = 12.dp, bottom = 4.dp),
+            )
             val barModifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)

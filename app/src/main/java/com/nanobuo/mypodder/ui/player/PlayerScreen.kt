@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import com.nanobuo.mypodder.ui.components.IconWithCount
+import com.nanobuo.mypodder.ui.components.SkipAdButton
 import com.nanobuo.mypodder.data.db.EpisodeItem
 import kotlinx.coroutines.launch
 import androidx.compose.animation.Crossfade
@@ -117,6 +118,7 @@ fun PlayerScreen(
     val sleepState by viewModel.sleepState.collectAsStateWithLifecycle()
     val sleepRemaining by viewModel.sleepRemaining.collectAsStateWithLifecycle(initialValue = null)
     val queue by viewModel.queue.collectAsStateWithLifecycle()
+    val currentAd by viewModel.currentAd.collectAsStateWithLifecycle()
     var sheet by rememberSaveable { mutableStateOf(Sheet.NONE) }
 
     // Chiude il player quando la riproduzione viene interrotta (non prima della connessione).
@@ -255,6 +257,11 @@ fun PlayerScreen(
             )
         }
 
+        SkipAdButton(
+            visible = currentAd != null,
+            onClick = viewModel::skipAd,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
         Spacer(Modifier.height(8.dp))
         Row(
             Modifier.fillMaxWidth(),

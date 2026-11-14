@@ -153,6 +153,12 @@
     <string name="shake_to_extend">Shake to extend sleep timer</string>
     <string name="shake_to_extend_summary">Shaking the phone adds time to the running timer</string>
     <string name="settings_downloads">Downloads</string>
+    <string name="settings_ads">Ads</string>
+    <string name="skip_ad">Skip ad</string>
+    <string name="ad_detection">Detect ads</string>
+    <string name="ad_detection_summary">In downloaded episodes, find ads and parts that repeat across episodes, and sponsor chapters; the player offers to skip them</string>
+    <string name="ad_compare">Compare with a second download</string>
+    <string name="ad_compare_summary">Download each episode again to find ads inserted at download time. Uses twice the data</string>
     <string name="wifi_only">Download on Wi-Fi only</string>
     <string name="wifi_only_summary">Downloads wait until you are connected to Wi-Fi</string>
     <string name="delete_after_played">Delete after listening</string>

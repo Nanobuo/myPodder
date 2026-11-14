@@ -60,6 +60,10 @@ data class AppSettings(
     val downloadTreeUri: String = "",
     /** Ultima attività del player su questo dispositivo (ascolto, pausa, cambio episodio). */
     val lastPlayerActivity: Long = 0,
+    /** Riconosce le pubblicità negli episodi scaricati e propone di saltarle. */
+    val adDetection: Boolean = true,
+    /** Riscarica gli episodi per trovare le pubblicità inserite al download (usa più dati). */
+    val adCompareDownload: Boolean = false,
 )
 
 @Singleton
@@ -75,6 +79,8 @@ class SettingsRepository @Inject constructor(
         val speed = floatPreferencesKey("speed")
         val wifiOnly = booleanPreferencesKey("wifi_only")
         val deleteAfterPlayed = booleanPreferencesKey("delete_after_played")
+        val adDetection = booleanPreferencesKey("ad_detection")
+        val adCompareDownload = booleanPreferencesKey("ad_compare_download")
         val autoDownloadCount = intPreferencesKey("auto_download_count")
         val refreshHours = intPreferencesKey("refresh_hours")
         val addNewToQueue = booleanPreferencesKey("add_new_to_queue")
@@ -108,6 +114,8 @@ class SettingsRepository @Inject constructor(
             speed = p[Keys.speed] ?: defaults.speed,
             wifiOnly = p[Keys.wifiOnly] ?: defaults.wifiOnly,
             deleteAfterPlayed = p[Keys.deleteAfterPlayed] ?: defaults.deleteAfterPlayed,
+            adDetection = p[Keys.adDetection] ?: defaults.adDetection,
+            adCompareDownload = p[Keys.adCompareDownload] ?: defaults.adCompareDownload,
             autoDownloadCount = p[Keys.autoDownloadCount] ?: defaults.autoDownloadCount,
             refreshHours = p[Keys.refreshHours] ?: defaults.refreshHours,
             addNewToQueue = p[Keys.addNewToQueue] ?: defaults.addNewToQueue,
@@ -148,6 +156,8 @@ class SettingsRepository @Inject constructor(
     suspend fun setSpeed(v: Float) = set(Keys.speed, v)
     suspend fun setWifiOnly(v: Boolean) = set(Keys.wifiOnly, v)
     suspend fun setDeleteAfterPlayed(v: Boolean) = set(Keys.deleteAfterPlayed, v)
+    suspend fun setAdDetection(v: Boolean) = set(Keys.adDetection, v)
+    suspend fun setAdCompareDownload(v: Boolean) = set(Keys.adCompareDownload, v)
     suspend fun setAutoDownloadCount(v: Int) = set(Keys.autoDownloadCount, v)
     suspend fun setRefreshHours(v: Int) = set(Keys.refreshHours, v)
     suspend fun setAddNewToQueue(v: Boolean) = set(Keys.addNewToQueue, v)

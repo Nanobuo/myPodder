@@ -11,6 +11,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.nanobuo.mypodder.R
+import com.nanobuo.mypodder.data.ads.AdRepository
 import com.nanobuo.mypodder.data.db.AppDatabase
 import com.nanobuo.mypodder.data.db.DownloadState
 import dagger.assisted.Assisted
@@ -30,6 +31,7 @@ class DownloadWorker @AssistedInject constructor(
     db: AppDatabase,
     private val client: OkHttpClient,
     private val downloads: DownloadRepository,
+    private val ads: AdRepository,
 ) : CoroutineWorker(context, params) {
 
     private val episodeDao = db.episodeDao()
@@ -95,6 +97,7 @@ class DownloadWorker @AssistedInject constructor(
             } else {
                 episodeDao.setDownloaded(id, target.absolutePath, target.length())
             }
+            ads.schedule(id)
             Result.success()
         } catch (e: CancellationException) {
             throw e

@@ -6,8 +6,9 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class, RemoteListening::class],
-    version = 5,
+    entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class, RemoteListening::class,
+        AdSegment::class, AdAnalysis::class],
+    version = 6,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -52,6 +53,20 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE podcasts ADD COLUMN settingsUpdatedAt INTEGER NOT NULL DEFAULT 0")
             }
         }
+
+        /** v6: pubblicità riconosciute negli episodi scaricati. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ad_segments (episodeId INTEGER NOT NULL, startMs INTEGER NOT NULL, " +
+                        "endMs INTEGER NOT NULL, source TEXT NOT NULL, PRIMARY KEY(episodeId, startMs, source))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ad_analysis (episodeId INTEGER NOT NULL, podcastId INTEGER NOT NULL, " +
+                        "analyzedAt INTEGER NOT NULL, fingerprint TEXT, insertedChecked INTEGER NOT NULL, PRIMARY KEY(episodeId))"
+                )
+            }
+        }
     }
 
     abstract fun podcastDao(): PodcastDao
@@ -59,4 +74,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun queueDao(): QueueDao
     abstract fun chapterDao(): ChapterDao
     abstract fun listeningDao(): ListeningDao
+    abstract fun adDao(): AdDao
 }

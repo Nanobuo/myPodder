@@ -352,3 +352,44 @@ interface ListeningDao {
     )
     fun observeTopPodcasts(fromDay: Long, limit: Int): Flow<List<PodcastTotal>>
 }
+
+@Dao
+interface AdDao {
+    @Query("SELECT * FROM ad_segments WHERE episodeId = :episodeId ORDER BY startMs")
+    fun observeSegments(episodeId: Long): Flow<List<AdSegment>>
+
+    @Query("SELECT * FROM ad_segments WHERE episodeId = :episodeId AND source = :source ORDER BY startMs")
+    suspend fun segments(episodeId: Long, source: String): List<AdSegment>
+
+    @Query("DELETE FROM ad_segments WHERE episodeId = :episodeId AND source = :source")
+    suspend fun deleteSegments(episodeId: Long, source: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSegments(list: List<AdSegment>)
+
+    @Transaction
+    suspend fun replaceSegments(episodeId: Long, source: String, list: List<AdSegment>) {
+        deleteSegments(episodeId, source)
+        insertSegments(list)
+    }
+
+    @Query("SELECT * FROM ad_analysis WHERE episodeId = :episodeId")
+    suspend fun analysis(episodeId: Long): AdAnalysis?
+
+    /** Analisi con impronta degli altri episodi del podcast, dalla più recente. */
+    @Query("SELECT * FROM ad_analysis WHERE podcastId = :podcastId AND episodeId != :except AND fingerprint IS NOT NULL ORDER BY analyzedAt DESC")
+    suspend fun withFingerprint(podcastId: Long, except: Long): List<AdAnalysis>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveAnalysis(a: AdAnalysis)
+
+    @Query("UPDATE ad_analysis SET fingerprint = NULL WHERE episodeId = :episodeId")
+    suspend fun dropFingerprint(episodeId: Long)
+
+    /** Episodi scaricati non ancora analizzati, dal più recente. */
+    @Query(
+        "SELECT e.id FROM episodes e LEFT JOIN ad_analysis a ON a.episodeId = e.id " +
+            "WHERE e.downloadState = 3 AND e.localPath IS NOT NULL AND a.episodeId IS NULL ORDER BY e.pubDate DESC LIMIT :limit"
+    )
+    suspend fun pending(limit: Int): List<Long>
+}

@@ -9,6 +9,8 @@ import com.nanobuo.mypodder.data.repo.EpisodeRepository
 import com.nanobuo.mypodder.data.settings.AppSettings
 import com.nanobuo.mypodder.data.settings.SettingsRepository
 import com.nanobuo.mypodder.data.sync.SyncManager
+import com.nanobuo.mypodder.data.ads.AdRange
+import com.nanobuo.mypodder.playback.AdPlayback
 import com.nanobuo.mypodder.playback.PlayerConnection
 import com.nanobuo.mypodder.playback.SleepState
 import com.nanobuo.mypodder.playback.SleepTimer
@@ -37,6 +39,7 @@ class PlayerViewModel @Inject constructor(
     private val sleepTimer: SleepTimer,
     private val settingsRepository: SettingsRepository,
     private val sync: SyncManager,
+    private val adPlayback: AdPlayback,
 ) : ViewModel() {
 
     val nowPlaying = connection.state
@@ -53,6 +56,14 @@ class PlayerViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val position = connection.positionFlow()
+
+    /** Pubblicità in corso, da proporre di saltare. */
+    val currentAd: StateFlow<AdRange?> = adPlayback.current
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun skipAd() {
+        currentAd.value?.let(adPlayback::skip)
+    }
 
     /** Coda senza l'episodio nel player, che ci resta finché non parte (es. appena riaperta l'app). */
     val queue: StateFlow<List<EpisodeItem>> = combine(episodes.queue, episodeId) { list, id ->

@@ -150,6 +150,12 @@
     <string name="shake_to_extend">Scuoti per prolungare il timer</string>
     <string name="shake_to_extend_summary">Scuotendo il telefono si aggiunge tempo al timer attivo</string>
     <string name="settings_downloads">Download</string>
+    <string name="settings_ads">Pubblicità</string>
+    <string name="skip_ad">Salta pubblicità</string>
+    <string name="ad_detection">Riconosci le pubblicità</string>
+    <string name="ad_detection_summary">Negli episodi scaricati cerca spot e parti che si ripetono tra gli episodi, e i capitoli di sponsor; il player propone di saltarli</string>
+    <string name="ad_compare">Confronta con un secondo download</string>
+    <string name="ad_compare_summary">Riscarica ogni episodio per trovare le pubblicità inserite al momento del download. Usa il doppio dei dati</string>
     <string name="wifi_only">Scarica solo con Wi-Fi</string>
     <string name="wifi_only_summary">I download attendono la connessione Wi-Fi</string>
     <string name="delete_after_played">Elimina dopo l\'ascolto</string>

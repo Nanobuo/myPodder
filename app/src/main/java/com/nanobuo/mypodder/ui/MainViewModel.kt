@@ -1,7 +1,10 @@
 package com.nanobuo.mypodder.ui
 
+import com.nanobuo.mypodder.playback.AdPlayback
+import com.nanobuo.mypodder.data.ads.AdRange
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nanobuo.mypodder.data.ads.AdRepository
 import com.nanobuo.mypodder.data.download.DownloadRepository
 import com.nanobuo.mypodder.data.update.UpdateManager
 import com.nanobuo.mypodder.data.repo.EpisodeRepository
@@ -30,6 +33,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val episodes: EpisodeRepository,
     private val downloads: DownloadRepository,
+    private val ads: AdRepository,
+    private val adPlayback: AdPlayback,
     private val settingsRepository: SettingsRepository,
     val player: PlayerConnection,
     val updates: UpdateManager,
@@ -47,8 +52,15 @@ class MainViewModel @Inject constructor(
     private val _newEpisodesAtStart = MutableStateFlow<Int?>(null)
     val newEpisodesAtStart: StateFlow<Int?> = _newEpisodesAtStart
 
+    /** Pubblicità in corso nel mini-player. */
+    val currentAd = adPlayback.current
+
+    fun skipAd(ad: AdRange) = adPlayback.skip(ad)
+
     init {
         updates.checkIfDue()
+        // Episodi scaricati prima di questa versione (o mentre l'analisi era spenta).
+        viewModelScope.launch { ads.schedulePending() }
         // Chi aveva già delle iscrizioni prima di questa versione non vede il benvenuto.
         viewModelScope.launch {
             val s = settingsRepository.current()

@@ -196,3 +196,23 @@ data class EpisodeSyncState(
 )
 
 data class EpisodeKey(val id: Long, val feedUrl: String, val guid: String)
+
+/** Pubblicità riconosciuta nell'audio scaricato (vedi data/ads). `source`: repeat, inserted. */
+@Entity(tableName = "ad_segments", primaryKeys = ["episodeId", "startMs", "source"])
+data class AdSegment(
+    val episodeId: Long,
+    val startMs: Long,
+    val endMs: Long,
+    val source: String,
+)
+
+/** Analisi delle pubblicità fatta su un episodio scaricato. */
+@Entity(tableName = "ad_analysis")
+data class AdAnalysis(
+    @PrimaryKey val episodeId: Long,
+    val podcastId: Long,
+    val analyzedAt: Long,
+    /** File dell'impronta audio, tenuto per gli ultimi episodi di ogni podcast. */
+    val fingerprint: String?,
+    val insertedChecked: Boolean,
+)

@@ -4,7 +4,7 @@
  * Contatori incrementati a ogni modifica dei dati: le schermate li leggono nei loro $effect e si
  * ricaricano quando cambiano.
  */
-export const versions = $state({ podcasts: 0, episodes: 0, queue: 0, listening: 0, downloads: 0 });
+export const versions = $state({ podcasts: 0, episodes: 0, queue: 0, listening: 0, downloads: 0, ads: 0 });
 
 export function changed(...what: (keyof typeof versions)[]) {
   for (const w of what) versions[w]++;

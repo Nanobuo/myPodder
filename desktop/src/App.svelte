@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ripple } from "./lib/motion.ts";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { app } from "./lib/app.svelte.ts";
   import { t, type StringKey } from "./lib/i18n.ts";
   import { queueCount, reloadQueueIds } from "./lib/live.svelte.ts";
@@ -36,6 +36,11 @@
   // Tema: chiaro/scuro e colore d'accento (eventualmente dalla copertina in ascolto).
   const dark = $derived(settings.theme === "dark" || (settings.theme === "system" && systemDark.value));
   let seed = $state<number | null>(null);
+  // Nuove pubblicità riconosciute (analisi finita): il player aggiorna le sue.
+  $effect(() => {
+    void versions.ads;
+    untrack(() => void player.refreshAds());
+  });
   $effect(() => {
     const url = settings.coverColors ? (player.current?.podcastImage ?? player.current?.imageUrl ?? null) : null;
     let cancelled = false;

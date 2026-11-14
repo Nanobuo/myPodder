@@ -1,3 +1,5 @@
+mod ads;
+mod ads_core;
 mod login;
 mod media;
 
@@ -65,7 +67,10 @@ pub fn run() {
             ensure_dir,
             file_size,
             login::start_login_server,
-            media::media_base_url
+            media::media_base_url,
+            ads::ad_fingerprint,
+            ads::ad_repeated,
+            ads::ad_inserted
         ])
         .run(tauri::generate_context!())
         .expect("error while running myPodder");

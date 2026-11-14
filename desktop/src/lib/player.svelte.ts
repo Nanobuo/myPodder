@@ -1,4 +1,5 @@
-import { artworkOf, chaptersDb, episodesDb, podcastsDb, listeningDb, queueDb, type Chapter, type EpisodeItem } from "./db.ts";
+import { artworkOf, chaptersDb, episodesDb, podcastsDb, listeningDb, queueDb, type AdSegment, type Chapter, type EpisodeItem } from "./db.ts";
+import { adSegments } from "./ads.svelte.ts";
 import { ensureChapters } from "./chapterLoader.ts";
 import { localSource } from "./downloads.svelte.ts";
 import { epochDay } from "./format.ts";
@@ -29,11 +30,15 @@ class Player {
   speed = $state(1);
   volume = $state(1);
   chapters: Chapter[] = $state([]);
+  /** Pubblicità riconosciute nell'episodio corrente. */
+  ads: AdSegment[] = $state([]);
   sleep: SleepState = $state({ kind: "off" });
   error = $state(false);
 
   chapterIndex = $derived(this.chapters.findLastIndex((c) => c.startMs <= this.position));
   currentChapter = $derived(this.chapterIndex >= 0 ? this.chapters[this.chapterIndex] : null);
+  /** Pubblicità in corso: il player propone di saltarla (fino a poco prima della fine). */
+  currentAd = $derived(this.ads.find((a) => this.position >= a.startMs && this.position < a.endMs - 1500) ?? null);
   /** Immagine del capitolo corrente, se presente, altrimenti la copertina dell'episodio. */
   artwork = $derived(this.currentChapter?.imageUrl ?? (this.current ? artworkOf(this.current) : null));
 
@@ -165,6 +170,8 @@ class Player {
     this.duration = item.durationMs;
     this.pendingSeek = this.position;
     this.chapters = await chaptersDb.get(id);
+    this.ads = [];
+    void this.refreshAds();
     const src = (await localSource(item)) ?? item.audioUrl;
     if (seq !== this.loadSeq) return;
     this.audio.src = src;
@@ -174,7 +181,10 @@ class Player {
     this.updateMetadata();
     if (opts.autoplay) await this.audio.play().catch(() => undefined);
     void ensureChapters(id).then(async () => {
-      if (this.current?.id === id) this.chapters = await chaptersDb.get(id);
+      if (this.current?.id === id) {
+        this.chapters = await chaptersDb.get(id);
+        void this.refreshAds();
+      }
     });
   }
 
@@ -281,6 +291,20 @@ class Player {
     if (next != null) await this.play(next, undefined, false);
   }
 
+  /** Ricarica le pubblicità dell'episodio corrente (es. dopo un'analisi). */
+  async refreshAds() {
+    const item = this.current;
+    if (!item) return;
+    const list = await adSegments(item.id, this.chapters, this.duration || item.durationMs);
+    if (this.current?.id === item.id) this.ads = list;
+  }
+
+  /** Salta alla fine della pubblicità in corso. */
+  skipAd() {
+    const ad = this.currentAd;
+    if (ad) this.seekTo(ad.endMs);
+  }
+
   /** Ferma e svuota il player (es. episodio eliminato). */
   async stop() {
     await this.flush();
@@ -289,6 +313,7 @@ class Player {
     this.audio.load();
     this.current = null;
     this.chapters = [];
+    this.ads = [];
     this.position = 0;
     this.duration = 0;
     if ("mediaSession" in navigator) navigator.mediaSession.metadata = null;

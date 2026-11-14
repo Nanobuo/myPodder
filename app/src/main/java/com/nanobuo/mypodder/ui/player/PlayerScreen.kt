@@ -13,12 +13,11 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import com.nanobuo.mypodder.ui.components.IconWithCount
 import com.nanobuo.mypodder.data.db.EpisodeItem
 import kotlinx.coroutines.launch
 import androidx.compose.animation.Crossfade
@@ -303,7 +302,7 @@ fun PlayerScreen(
                 )
             }
             IconButton(onClick = { sheet = Sheet.QUEUE }, enabled = queue.isNotEmpty()) {
-                BadgedBox(badge = { if (queue.isNotEmpty()) Badge { Text(queue.size.toString()) } }) {
+                IconWithCount(queue.size) {
                     Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.nav_queue))
                 }
             }

@@ -34,6 +34,10 @@ export interface AppSettings {
   /** Ultima attività del player su questo computer (ascolto, pausa, cambio episodio). */
   lastPlayerActivity: number;
   libraryTab: number;
+  /** Riconosce le pubblicità negli episodi scaricati e propone di saltarle. */
+  adDetection: boolean;
+  /** Riscarica gli episodi per trovare le pubblicità inserite al download (usa più dati). */
+  adCompareDownload: boolean;
 }
 
 const defaults: AppSettings = {
@@ -63,6 +67,8 @@ const defaults: AppSettings = {
   lastEpisodeId: null,
   lastPlayerActivity: 0,
   libraryTab: 0,
+  adDetection: true,
+  adCompareDownload: false,
 };
 
 const KEY = "settings";

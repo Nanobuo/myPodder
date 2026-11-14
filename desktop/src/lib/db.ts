@@ -144,6 +144,17 @@ const SCHEMA = [
     PRIMARY KEY (deviceId, day, feedUrl, guid))`,
   `CREATE INDEX IF NOT EXISTS listening_podcast ON listening(podcastId)`,
   `CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+  // Pubblicità riconosciute nell'audio scaricato (vedi ads.svelte.ts).
+  `CREATE TABLE IF NOT EXISTS ad_segments (
+    episodeId INTEGER NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    startMs INTEGER NOT NULL, endMs INTEGER NOT NULL, source TEXT NOT NULL,
+    PRIMARY KEY (episodeId, startMs, source))`,
+  `CREATE TABLE IF NOT EXISTS ad_analysis (
+    episodeId INTEGER PRIMARY KEY REFERENCES episodes(id) ON DELETE CASCADE,
+    podcastId INTEGER NOT NULL,
+    analyzedAt INTEGER NOT NULL,
+    fingerprint TEXT,
+    insertedChecked INTEGER NOT NULL DEFAULT 0)`,
 ];
 
 let dbPromise: Promise<Database> | null = null;
@@ -596,5 +607,65 @@ export const kv = {
   remove: (key: string) => execute("DELETE FROM kv WHERE key = ?", [key]),
   async removePrefix(prefix: string) {
     await execute("DELETE FROM kv WHERE key LIKE ?", [prefix + "%"]);
+  },
+};
+
+// --- Pubblicità ---
+
+export type AdSource = "repeat" | "inserted" | "chapter";
+
+export interface AdSegment {
+  startMs: number;
+  endMs: number;
+  source: AdSource;
+}
+
+export interface AdAnalysis {
+  episodeId: number;
+  podcastId: number;
+  analyzedAt: number;
+  fingerprint: string | null;
+  insertedChecked: boolean;
+}
+
+export const adsDb = {
+  segments(episodeId: number): Promise<AdSegment[]> {
+    return select("SELECT startMs, endMs, source FROM ad_segments WHERE episodeId = ? ORDER BY startMs", [episodeId]);
+  },
+  async replace(episodeId: number, source: AdSource, list: { startMs: number; endMs: number }[]) {
+    await batch([
+      ["DELETE FROM ad_segments WHERE episodeId = ? AND source = ?", [episodeId, source]],
+      ...list.map((x): [string, unknown[]] => [
+        "INSERT OR REPLACE INTO ad_segments (episodeId, startMs, endMs, source) VALUES (?, ?, ?, ?)",
+        [episodeId, Math.round(x.startMs), Math.round(x.endMs), source],
+      ]),
+    ]);
+  },
+  async analysis(episodeId: number): Promise<AdAnalysis | null> {
+    const rows = await select<AdAnalysis>("SELECT * FROM ad_analysis WHERE episodeId = ?", [episodeId]);
+    return rows[0] ? { ...rows[0], insertedChecked: !!rows[0].insertedChecked } : null;
+  },
+  /** Analisi con impronta degli altri episodi del podcast, dalla più recente. */
+  withFingerprint(podcastId: number, exceptEpisodeId: number): Promise<AdAnalysis[]> {
+    return select(
+      "SELECT * FROM ad_analysis WHERE podcastId = ? AND episodeId != ? AND fingerprint IS NOT NULL ORDER BY analyzedAt DESC",
+      [podcastId, exceptEpisodeId],
+    );
+  },
+  async save(a: AdAnalysis) {
+    await execute(
+      "INSERT OR REPLACE INTO ad_analysis (episodeId, podcastId, analyzedAt, fingerprint, insertedChecked) VALUES (?, ?, ?, ?, ?)",
+      [a.episodeId, a.podcastId, a.analyzedAt, a.fingerprint, a.insertedChecked ? 1 : 0],
+    );
+  },
+  dropFingerprint: (episodeId: number) => execute("UPDATE ad_analysis SET fingerprint = NULL WHERE episodeId = ?", [episodeId]),
+  /** Episodi scaricati non ancora analizzati, dal più recente. */
+  pending(limit: number): Promise<{ id: number }[]> {
+    return select(
+      `SELECT e.id FROM episodes e LEFT JOIN ad_analysis a ON a.episodeId = e.id
+       WHERE e.localPath IS NOT NULL AND e.downloadState = ? AND a.episodeId IS NULL
+       ORDER BY e.pubDate DESC LIMIT ?`,
+      [DownloadState.DONE, limit],
+    );
   },
 };

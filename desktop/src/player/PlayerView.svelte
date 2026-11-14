@@ -13,6 +13,7 @@
   import SleepDialog from "./SleepDialog.svelte";
   import SpeedButton from "./SpeedButton.svelte";
   import Spinner from "../components/Spinner.svelte";
+  import SkipAdButton from "../components/SkipAdButton.svelte";
   import { queueCount } from "../lib/live.svelte.ts";
   import { rise, ripple } from "../lib/motion.ts";
 
@@ -50,6 +51,7 @@
         <button class="podcast title-medium" onclick={() => nav.navigate({ name: "podcast", id: item.podcastId })}>{item.podcastTitle}</button>
       </div>
       <SeekBar />
+      <div class="skip-ad-row"><SkipAdButton /></div>
       <div class="controls">
         <SpeedButton large />
         <IconButton icon="done_all" label={t("mark_played")} size={48} onclick={() => player.markPlayed()} />
@@ -195,6 +197,11 @@
   }
   .play:active {
     transform: scale(0.94);
+  }
+  .skip-ad-row {
+    display: flex;
+    justify-content: center;
+    min-height: 0;
   }
   .side {
     display: flex;

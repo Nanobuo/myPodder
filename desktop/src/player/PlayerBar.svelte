@@ -12,6 +12,7 @@
   import Spinner from "../components/Spinner.svelte";
   import CountBadge from "../components/CountBadge.svelte";
   import Marquee from "../components/Marquee.svelte";
+  import SkipAdButton from "../components/SkipAdButton.svelte";
   import { queueCount } from "../lib/live.svelte.ts";
   import { ripple } from "../lib/motion.ts";
 
@@ -21,6 +22,7 @@
 
 <footer class="bar" class:empty={!item}>
   {#if item}
+    {#if !nav.playerOpen}<SkipAdButton floating />{/if}
     <button use:ripple class="info" onclick={() => (nav.playerOpen = !nav.playerOpen)} title={t("open_player")}>
       <Cover src={player.artwork} size={56} radius={10} />
       <div class="text">
@@ -83,6 +85,7 @@
 <style>
   .bar {
     grid-area: player;
+    position: relative;
     display: grid;
     grid-template-columns: minmax(200px, 1fr) minmax(300px, 1.4fr) minmax(200px, 1fr);
     align-items: center;

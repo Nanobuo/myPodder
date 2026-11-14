@@ -2,6 +2,8 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { countryOf, defaultCountry } from "../lib/countries.ts";
   import { prepareFolder } from "../lib/downloads.svelte.ts";
+  import { analyzePending } from "../lib/ads.svelte.ts";
+  import { player } from "../lib/player.svelte.ts";
   import { formatRelative } from "../lib/format.ts";
   import { t } from "../lib/i18n.ts";
   import { appVersion } from "../lib/net.ts";
@@ -20,6 +22,16 @@
   import Wordmark from "../components/Wordmark.svelte";
 
   let pickerOpen = $state(false);
+
+  function setAdDetection(on: boolean) {
+    updateSettings({ adDetection: on });
+    if (on) void analyzePending();
+    void player.refreshAds();
+  }
+
+  function setAdCompare(on: boolean) {
+    updateSettings({ adCompareDownload: on });
+  }
 
   async function chooseFolder() {
     const dir = await open({ directory: true, multiple: false });
@@ -131,6 +143,19 @@
         {/each}
       </div>
     </div>
+
+    <h2 class="section">{t("settings_ads")}</h2>
+    <ListItem headline={t("ad_detection")} supporting={t("ad_detection_summary")} onclick={() => setAdDetection(!settings.adDetection)}>
+      {#snippet trailing()}<Switch checked={settings.adDetection} onchange={setAdDetection} />{/snippet}
+    </ListItem>
+    <ListItem
+      headline={t("ad_compare")}
+      supporting={t("ad_compare_summary")}
+      disabled={!settings.adDetection}
+      onclick={() => setAdCompare(!settings.adCompareDownload)}
+    >
+      {#snippet trailing()}<Switch checked={settings.adCompareDownload} onchange={(v) => settings.adDetection && setAdCompare(v)} />{/snippet}
+    </ListItem>
 
     <h2 class="section">{t("settings_feeds")}</h2>
     <div class="choice column">

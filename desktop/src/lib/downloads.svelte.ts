@@ -6,6 +6,9 @@ import { settings } from "./settings.svelte.ts";
 import { changed } from "./store.svelte.ts";
 import { appVersion } from "./net.ts";
 
+/** Chiamate a ogni download completato (es. analisi delle pubblicità). */
+export const onDownloaded: ((episodeId: number) => void)[] = [];
+
 /** Avanzamento dei download in corso (0–100), per episodio. */
 export const progress: Record<number, number> = $state({});
 
@@ -25,7 +28,7 @@ function safeName(name: string, max = 80): string {
   return (cleaned || "episodio").slice(0, max);
 }
 
-function extension(e: Episode): string {
+export function extension(e: Episode): string {
   const fromUrl = /\.([a-z0-9]{2,4})(?:$|[?#])/i.exec(new URL(e.audioUrl, "https://x").pathname)?.[1];
   if (fromUrl) return fromUrl.toLowerCase();
   if (e.mimeType?.includes("mp4") || e.mimeType?.includes("m4a")) return "m4a";
@@ -88,6 +91,7 @@ async function run(id: number) {
     const size = await invoke<number>("file_size", { path });
     if (!size) throw new Error("empty file");
     await episodesDb.setDownloaded(id, path, size);
+    for (const f of onDownloaded) f(id);
   } catch (e) {
     console.warn("download failed", id, e);
     await episodesDb.setDownloadState(id, DownloadState.FAILED);

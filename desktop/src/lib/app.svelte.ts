@@ -2,6 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { episodesDb, podcastsDb } from "./db.ts";
 import { prepareFolder, resumePending } from "./downloads.svelte.ts";
 import { analyzePending } from "./ads.svelte.ts";
+import * as repo from "./repo.ts";
 import { t } from "./i18n.ts";
 import { isTauri } from "./net.ts";
 import { player } from "./player.svelte.ts";
@@ -36,6 +37,8 @@ class AppState {
       await prepareFolder().catch(() => undefined);
       await resumePending(await episodesDb.downloads());
       void analyzePending().catch((e) => console.warn("ad analysis", e));
+      // Podcast ascoltati solo dall'anteprima e non più usati.
+      void repo.cleanUpPreviews().catch(() => undefined);
       const win = getCurrentWindow();
       await win.onFocusChanged(({ payload: focused }) => {
         if (focused) this.onForeground();

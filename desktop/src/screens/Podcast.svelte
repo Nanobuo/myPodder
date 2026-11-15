@@ -103,14 +103,19 @@
             <ExpandableDescription html={podcast.description} />
           {/if}
           <div class="row actions">
-            <Button variant="tonal" icon="check" onclick={() => (confirmUnsubscribe = true)}>{t("subscribed")}</Button>
-            <label class="auto row">
-              <Switch checked={podcast.autoDownload} onchange={(v) => repo.setAutoDownload(id, v)} label={t("auto_download")} />
-              <span>
-                <span class="body-large">{t("auto_download")}</span><br />
-                <span class="body-small muted">{t("auto_download_summary")}</span>
-              </span>
-            </label>
+            {#if podcast.subscribed}
+              <Button variant="tonal" icon="check" onclick={() => (confirmUnsubscribe = true)}>{t("subscribed")}</Button>
+              <label class="auto row">
+                <Switch checked={podcast.autoDownload} onchange={(v) => repo.setAutoDownload(id, v)} label={t("auto_download")} />
+                <span>
+                  <span class="body-large">{t("auto_download")}</span><br />
+                  <span class="body-small muted">{t("auto_download_summary")}</span>
+                </span>
+              </label>
+            {:else}
+              <!-- Podcast ascoltato dall'anteprima senza iscriversi. -->
+              <Button icon="add" onclick={() => void repo.subscribe(podcast!.feedUrl).then(() => sync.requestSync())}>{t("subscribe")}</Button>
+            {/if}
           </div>
           <button class="skip" onclick={openSkip}>
             <Icon name="content_cut" />

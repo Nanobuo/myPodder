@@ -4,7 +4,8 @@
   import { formatDate, formatDuration, stripHtml } from "../lib/format.ts";
   import { t } from "../lib/i18n.ts";
   import * as repo from "../lib/repo.ts";
-  import { nav, versions } from "../lib/store.svelte.ts";
+  import { nav, snackbar, versions } from "../lib/store.svelte.ts";
+  import { player } from "../lib/player.svelte.ts";
   import { sync } from "../lib/sync.svelte.ts";
   import Button from "../components/Button.svelte";
   import Cover from "../components/Cover.svelte";
@@ -27,8 +28,24 @@
   $effect(load);
   $effect(() => {
     void versions.podcasts;
-    void podcastsDb.byUrl(feedUrl).then((p) => (subscribedId = p?.id ?? null));
+    void podcastsDb.byUrl(feedUrl).then((p) => (subscribedId = p?.subscribed ? p.id : null));
   });
+
+  // Ascolto di un episodio senza iscriversi.
+  let starting = $state<string | null>(null);
+  async function play(guid: string) {
+    if (!feed || starting) return;
+    starting = guid;
+    try {
+      const id = await repo.episodeForPreview(feedUrl, feed, guid);
+      if (id != null) await player.play(id);
+    } catch (e) {
+      console.warn("preview play", e);
+      snackbar.show(t("feed_error"));
+    } finally {
+      starting = null;
+    }
+  }
 
   async function subscribe() {
     if (subscribing) return;
@@ -85,11 +102,19 @@
       <div class="episodes">
         {#each feed.episodes.slice(0, 100) as e (e.guid)}
           <div class="episode">
-            <div class="title-small clamp-2">{e.title}</div>
-            {#if e.description}<div class="body-small muted clamp-2">{stripHtml(e.description)}</div>{/if}
-            <div class="body-small muted">
-              {[formatDate(e.pubDate), e.durationMs > 0 ? formatDuration(e.durationMs) : ""].filter(Boolean).join(" · ")}
+            <div class="text">
+              <div class="title-small clamp-2">{e.title}</div>
+              {#if e.description}<div class="body-small muted clamp-2">{stripHtml(e.description)}</div>{/if}
+              <div class="body-small muted">
+                {[formatDate(e.pubDate), e.durationMs > 0 ? formatDuration(e.durationMs) : ""].filter(Boolean).join(" · ")}
+              </div>
             </div>
+            <!-- Si può ascoltare anche senza iscriversi. -->
+            {#if starting === e.guid}
+              <div class="spin"><Spinner size={24} /></div>
+            {:else}
+              <IconButton icon="play_arrow" variant="tonal" fill label={t("play")} disabled={starting != null} onclick={() => play(e.guid)} />
+            {/if}
           </div>
         {/each}
       </div>
@@ -125,7 +150,19 @@
     padding: 12px;
     border-bottom: 1px solid var(--md-outline-variant);
     display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     gap: 2px;
+  }
+  .spin {
+    width: 40px;
+    display: grid;
+    place-items: center;
   }
 </style>

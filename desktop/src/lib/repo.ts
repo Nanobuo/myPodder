@@ -66,7 +66,37 @@ const categoriesOf = (feed: ParsedFeed) => feed.categories.join("|") || null;
 /** Si iscrive al feed (se non già presente) e restituisce l'id del podcast. */
 export async function subscribe(feedUrl: string, preloaded?: ParsedFeed): Promise<number> {
   const existing = await podcastsDb.byUrl(feedUrl);
-  if (existing) return existing.id;
+  if (existing) {
+    // Già presente perché ascoltato dall'anteprima: diventa un'iscrizione vera.
+    if (!existing.subscribed) {
+      await podcastsDb.markSubscribed(existing.id);
+      await refresh(existing.id).catch(() => 0);
+      changed("podcasts", "episodes");
+    }
+    return existing.id;
+  }
+  return add(feedUrl, preloaded, true);
+}
+
+/**
+ * Rende ascoltabile un episodio senza iscriversi: il podcast resta nel database ma non compare tra
+ * le iscrizioni. Restituisce l'id dell'episodio con `guid`.
+ */
+export async function episodeForPreview(feedUrl: string, feed: ParsedFeed, guid: string): Promise<number | null> {
+  const podcastId = (await podcastsDb.byUrl(feedUrl))?.id ?? (await add(feedUrl, feed, false));
+  const found = await episodesDb.idFor(feedUrl, guid);
+  if (found != null) return found;
+  // Episodio uscito dopo l'ultimo aggiornamento del podcast salvato.
+  await insertEpisodes(podcastId, feed.episodes.filter((e) => e.guid === guid), false);
+  return episodesDb.idFor(feedUrl, guid);
+}
+
+/** Podcast ascoltati solo dall'anteprima e non più usati da almeno un giorno. */
+export async function cleanUpPreviews() {
+  await podcastsDb.deleteUnusedPreviews(Date.now() - 24 * 3600_000);
+}
+
+async function add(feedUrl: string, preloaded: ParsedFeed | undefined, subscribed: boolean): Promise<number> {
   const feed = preloaded ?? (await fetchFeed(feedUrl));
   const id = await podcastsDb.insert({
     feedUrl,
@@ -79,6 +109,7 @@ export async function subscribe(feedUrl: string, preloaded?: ParsedFeed): Promis
     autoDownload: false,
     subscribedAt: Date.now(),
     lastRefreshed: Date.now(),
+    subscribed,
   });
   feedUrlOf.set(id, feedUrl);
   await insertEpisodes(id, feed.episodes, false);

@@ -20,6 +20,11 @@ export interface Podcast {
   skipOutroMs: number;
   /** Ultima modifica dei salti su questo computer: base della sincronizzazione. */
   settingsUpdatedAt: number;
+  /**
+   * false per i podcast non seguiti di cui si è ascoltato un episodio dall'anteprima: restano nel
+   * database (cronologia, coda, posizione) ma non compaiono tra le iscrizioni.
+   */
+  subscribed: boolean;
 }
 
 export interface PodcastWithNew extends Podcast {
@@ -108,7 +113,8 @@ const SCHEMA = [
     lastRefreshed INTEGER NOT NULL DEFAULT 0,
     skipIntroMs INTEGER NOT NULL DEFAULT 0,
     skipOutroMs INTEGER NOT NULL DEFAULT 0,
-    settingsUpdatedAt INTEGER NOT NULL DEFAULT 0)`,
+    settingsUpdatedAt INTEGER NOT NULL DEFAULT 0,
+    subscribed INTEGER NOT NULL DEFAULT 1)`,
   `CREATE TABLE IF NOT EXISTS episodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     podcastId INTEGER NOT NULL REFERENCES podcasts(id) ON DELETE CASCADE,
@@ -170,6 +176,9 @@ async function open(): Promise<Database> {
       await db.execute(`ALTER TABLE podcasts ADD COLUMN ${col} INTEGER NOT NULL DEFAULT 0`);
     }
   }
+  if (podcastCols.length && !podcastCols.some((c) => c.name === "subscribed")) {
+    await db.execute("ALTER TABLE podcasts ADD COLUMN subscribed INTEGER NOT NULL DEFAULT 1");
+  }
   const cols = await db.select<{ name: string }[]>("PRAGMA table_info(listening)");
   if (cols.length && !cols.some((c) => c.name === "updatedAt")) {
     await db.execute("ALTER TABLE listening ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 1");
@@ -214,7 +223,7 @@ export async function batch(statements: [string, unknown[]][]): Promise<void> {
 
 const bool = (v: unknown) => v === 1 || v === true || v === "1";
 
-const toPodcast = (r: Row): Podcast => ({ ...(r as unknown as Podcast), autoDownload: bool(r.autoDownload) });
+const toPodcast = (r: Row): Podcast => ({ ...(r as unknown as Podcast), autoDownload: bool(r.autoDownload), subscribed: bool(r.subscribed) });
 
 const toEpisode = <T extends Episode>(r: Row): T => ({
   ...(r as unknown as T),
@@ -230,12 +239,13 @@ const EPISODE_ITEM = `SELECT e.*, p.title AS podcastTitle, p.imageUrl AS podcast
 
 export const podcastsDb = {
   async all(): Promise<Podcast[]> {
-    return (await select("SELECT * FROM podcasts ORDER BY title COLLATE NOCASE")).map(toPodcast);
+    // Solo le iscrizioni: i podcast ascoltati dall'anteprima (subscribed = 0) restano fuori.
+    return (await select("SELECT * FROM podcasts WHERE subscribed = 1 ORDER BY title COLLATE NOCASE")).map(toPodcast);
   },
   async allWithNew(): Promise<PodcastWithNew[]> {
     const rows = await select(
       `SELECT p.*, (SELECT COUNT(*) FROM episodes e WHERE e.podcastId = p.id AND e.isNew = 1) AS newCount
-       FROM podcasts p ORDER BY p.title COLLATE NOCASE`,
+       FROM podcasts p WHERE p.subscribed = 1 ORDER BY p.title COLLATE NOCASE`,
     );
     return rows.map((r) => ({ ...toPodcast(r), newCount: Number(r.newCount) }));
   },
@@ -247,9 +257,9 @@ export const podcastsDb = {
   },
   async insert(p: Omit<Podcast, "id" | "skipIntroMs" | "skipOutroMs" | "settingsUpdatedAt">): Promise<number> {
     await execute(
-      `INSERT OR IGNORE INTO podcasts (feedUrl, title, author, description, imageUrl, link, categories, autoDownload, subscribedAt, lastRefreshed)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.feedUrl, p.title, p.author, p.description, p.imageUrl, p.link, p.categories, p.autoDownload ? 1 : 0, p.subscribedAt, p.lastRefreshed],
+      `INSERT OR IGNORE INTO podcasts (feedUrl, title, author, description, imageUrl, link, categories, autoDownload, subscribedAt, lastRefreshed, subscribed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.feedUrl, p.title, p.author, p.description, p.imageUrl, p.link, p.categories, p.autoDownload ? 1 : 0, p.subscribedAt, p.lastRefreshed, p.subscribed ? 1 : 0],
     );
     return (await podcastsDb.byUrl(p.feedUrl))!.id;
   },
@@ -276,6 +286,15 @@ export const podcastsDb = {
       [introMs, outroMs, updatedAt, feedUrl, updatedAt],
     ),
   delete: (id: number) => execute("DELETE FROM podcasts WHERE id = ?", [id]),
+  markSubscribed: (id: number) => execute("UPDATE podcasts SET subscribed = 1, subscribedAt = ? WHERE id = ?", [Date.now(), id]),
+  /** Podcast ascoltati solo dall'anteprima, senza più episodi in cronologia, coda o download. */
+  deleteUnusedPreviews: (before: number) =>
+    execute(
+      `DELETE FROM podcasts WHERE subscribed = 0 AND subscribedAt < ? AND NOT EXISTS (
+         SELECT 1 FROM episodes e WHERE e.podcastId = podcasts.id
+         AND (e.lastPlayedAt > 0 OR e.downloadState != 0 OR e.id IN (SELECT episodeId FROM queue)))`,
+      [before],
+    ),
 };
 
 // --- Episodi ---
@@ -285,7 +304,7 @@ export const episodesDb = {
     return (await select(`${EPISODE_ITEM} WHERE e.podcastId = ? ORDER BY e.pubDate DESC`, [podcastId])).map(toEpisode<EpisodeItem>);
   },
   async latest(limit = 150): Promise<EpisodeItem[]> {
-    return (await select(`${EPISODE_ITEM} WHERE e.completed = 0 ORDER BY e.pubDate DESC LIMIT ?`, [limit])).map(toEpisode<EpisodeItem>);
+    return (await select(`${EPISODE_ITEM} WHERE e.completed = 0 AND p.subscribed = 1 ORDER BY e.pubDate DESC LIMIT ?`, [limit])).map(toEpisode<EpisodeItem>);
   },
   async downloads(): Promise<EpisodeItem[]> {
     return (await select(`${EPISODE_ITEM} WHERE e.downloadState != 0 ORDER BY e.downloadState = 3, e.pubDate DESC`)).map(toEpisode<EpisodeItem>);

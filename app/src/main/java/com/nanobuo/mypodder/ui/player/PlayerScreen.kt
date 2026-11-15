@@ -308,8 +308,8 @@ fun PlayerScreen(
                     }
                 )
             }
-            IconButton(onClick = { sheet = Sheet.QUEUE }, enabled = queue.isNotEmpty()) {
-                IconWithCount(queue.size) {
+            IconWithCount(queue.size) {
+                IconButton(onClick = { sheet = Sheet.QUEUE }, enabled = queue.isNotEmpty()) {
                     Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.nav_queue))
                 }
             }

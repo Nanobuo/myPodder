@@ -16,13 +16,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Icona con un numero nell'angolo in alto a destra (es. episodi in coda).
- * Il badge si adatta al testo, così resta tondo anche con caratteri di sistema grandi.
+ * Pulsante con un numero nell'angolo in alto a destra (es. episodi in coda).
+ * Il badge sta fuori dal pulsante, che altrimenti lo taglierebbe sul suo bordo rotondo, e si
+ * adatta al testo, così resta una pillola anche con caratteri di sistema grandi.
  */
 @Composable
-fun IconWithCount(count: Int, icon: @Composable () -> Unit) {
+fun IconWithCount(count: Int, button: @Composable () -> Unit) {
     Box {
-        icon()
+        button()
         if (count > 0) {
             Surface(
                 color = MaterialTheme.colorScheme.primary,
@@ -30,7 +31,7 @@ fun IconWithCount(count: Int, icon: @Composable () -> Unit) {
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 10.dp, y = (-6).dp),
+                    .offset(x = 2.dp, y = 2.dp),
             ) {
                 Text(
                     if (count > 99) "99+" else count.toString(),

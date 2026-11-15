@@ -61,6 +61,8 @@ class MainViewModel @Inject constructor(
         updates.checkIfDue()
         // Episodi scaricati prima di questa versione (o mentre l'analisi era spenta).
         viewModelScope.launch { ads.schedulePending() }
+        // Podcast ascoltati solo dall'anteprima e non più usati.
+        viewModelScope.launch { runCatching { podcasts.cleanUpPreviews() } }
         // Chi aveva già delle iscrizioni prima di questa versione non vede il benvenuto.
         viewModelScope.launch {
             val s = settingsRepository.current()

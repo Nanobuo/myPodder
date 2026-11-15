@@ -63,7 +63,16 @@ class PodcastViewModel @Inject constructor(
         }
     }
 
-    fun unsubscribe(onDone: () -> Unit) {
+    /** Iscrizione a un podcast ascoltato dall'anteprima. */
+    fun subscribe() {
+        val feedUrl = podcast.value?.feedUrl ?: return
+        appScope.launch {
+            podcasts.subscribe(feedUrl)
+            sync.requestSync()
+        }
+    }
+
+        fun unsubscribe(onDone: () -> Unit) {
         appScope.launch { podcasts.unsubscribe(id) }
         onDone()
     }

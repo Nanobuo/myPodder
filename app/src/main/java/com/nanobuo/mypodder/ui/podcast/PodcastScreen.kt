@@ -1,5 +1,6 @@
 package com.nanobuo.mypodder.ui.podcast
 
+import androidx.compose.material3.Button
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -132,13 +133,16 @@ fun PodcastScreen(
                         if (error) {
                             Text(stringResource(R.string.refresh_error), color = MaterialTheme.colorScheme.error)
                         }
-                        ListItem(
-                            headlineContent = { Text(stringResource(R.string.auto_download)) },
-                            supportingContent = { Text(stringResource(R.string.auto_download_summary)) },
-                            trailingContent = { Switch(checked = p.autoDownload, onCheckedChange = viewModel::setAutoDownload) },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        // Il download automatico dei nuovi episodi vale solo per le iscrizioni.
+                        if (p.subscribed) {
+                            ListItem(
+                                headlineContent = { Text(stringResource(R.string.auto_download)) },
+                                supportingContent = { Text(stringResource(R.string.auto_download_summary)) },
+                                trailingContent = { Switch(checked = p.autoDownload, onCheckedChange = viewModel::setAutoDownload) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                         ListItem(
                             headlineContent = { Text(stringResource(R.string.skip_parts)) },
                             supportingContent = {
@@ -151,7 +155,11 @@ fun PodcastScreen(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             modifier = Modifier.fillMaxWidth().clickable { editSkip = true },
                         )
-                        OutlinedButton(onClick = { confirmUnsubscribe = true }) { Text(stringResource(R.string.unsubscribe)) }
+                        if (p.subscribed) {
+                            OutlinedButton(onClick = { confirmUnsubscribe = true }) { Text(stringResource(R.string.unsubscribe)) }
+                        } else {
+                            Button(onClick = viewModel::subscribe) { Text(stringResource(R.string.subscribe)) }
+                        }
                     }
                     HorizontalDivider()
                 }

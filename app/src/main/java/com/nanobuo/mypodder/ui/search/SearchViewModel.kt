@@ -1,5 +1,6 @@
 package com.nanobuo.mypodder.ui.search
 
+import com.nanobuo.mypodder.playback.PlayerConnection
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -122,6 +123,7 @@ sealed interface PreviewState {
 class PreviewViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val podcasts: PodcastRepository,
+    private val player: PlayerConnection,
 ) : ViewModel() {
     val feedUrl = savedStateHandle.toRoute<PreviewRoute>().feedUrl
 
@@ -144,6 +146,21 @@ class PreviewViewModel @Inject constructor(
             _state.value = PreviewState.Loading
             _state.value = runCatching { podcasts.fetchFeed(feedUrl) }
                 .fold(onSuccess = { PreviewState.Loaded(it) }, onFailure = { PreviewState.Error })
+        }
+    }
+
+    /** Episodio in preparazione per l'ascolto senza iscrizione. */
+    private val _starting = MutableStateFlow<String?>(null)
+    val starting = _starting.asStateFlow()
+
+    /** Ascolta un episodio senza iscriversi al podcast. */
+    fun play(guid: String) {
+        val feed = (_state.value as? PreviewState.Loaded)?.feed ?: return
+        if (_starting.value != null) return
+        viewModelScope.launch {
+            _starting.value = guid
+            runCatching { podcasts.episodeForPreview(feedUrl, feed, guid) }.getOrNull()?.let { player.play(it) }
+            _starting.value = null
         }
     }
 

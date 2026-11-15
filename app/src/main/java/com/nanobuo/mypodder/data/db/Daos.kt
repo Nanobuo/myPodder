@@ -13,16 +13,17 @@ private const val EPISODE_ITEM =
 
 @Dao
 interface PodcastDao {
-    @Query("SELECT * FROM podcasts ORDER BY title COLLATE NOCASE")
+    // Solo le iscrizioni: i podcast ascoltati dall'anteprima (subscribed = 0) restano fuori.
+    @Query("SELECT * FROM podcasts WHERE subscribed = 1 ORDER BY title COLLATE NOCASE")
     fun observeAll(): Flow<List<Podcast>>
 
     @Query(
         """SELECT p.*, (SELECT COUNT(*) FROM episodes e WHERE e.podcastId = p.id AND e.isNew = 1) AS newCount
-           FROM podcasts p ORDER BY p.title COLLATE NOCASE"""
+           FROM podcasts p WHERE p.subscribed = 1 ORDER BY p.title COLLATE NOCASE"""
     )
     fun observeAllWithNew(): Flow<List<PodcastWithNew>>
 
-    @Query("SELECT * FROM podcasts")
+    @Query("SELECT * FROM podcasts WHERE subscribed = 1")
     suspend fun getAll(): List<Podcast>
 
     @Query("SELECT * FROM podcasts WHERE id = :id")
@@ -34,8 +35,19 @@ interface PodcastDao {
     @Query("SELECT * FROM podcasts WHERE feedUrl = :url")
     suspend fun getByUrl(url: String): Podcast?
 
-    @Query("SELECT id FROM podcasts WHERE feedUrl = :url")
+    @Query("SELECT id FROM podcasts WHERE feedUrl = :url AND subscribed = 1")
     fun observeIdByUrl(url: String): Flow<Long?>
+
+    @Query("UPDATE podcasts SET subscribed = 1, subscribedAt = :now WHERE id = :id")
+    suspend fun markSubscribed(id: Long, now: Long = System.currentTimeMillis())
+
+    /** Podcast ascoltati solo dall'anteprima, senza più episodi in cronologia, coda o download. */
+    @Query(
+        """DELETE FROM podcasts WHERE subscribed = 0 AND subscribedAt < :before AND NOT EXISTS (
+             SELECT 1 FROM episodes e WHERE e.podcastId = podcasts.id
+             AND (e.lastPlayedAt > 0 OR e.downloadState != 0 OR e.id IN (SELECT episodeId FROM queue)))"""
+    )
+    suspend fun deleteUnusedPreviews(before: Long)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(podcast: Podcast): Long
@@ -74,7 +86,7 @@ interface EpisodeDao {
     @Query("$EPISODE_ITEM WHERE e.podcastId = :podcastId ORDER BY e.pubDate DESC")
     fun observeForPodcast(podcastId: Long): Flow<List<EpisodeItem>>
 
-    @Query("$EPISODE_ITEM WHERE e.completed = 0 ORDER BY e.pubDate DESC LIMIT :limit")
+    @Query("$EPISODE_ITEM WHERE e.completed = 0 AND p.subscribed = 1 ORDER BY e.pubDate DESC LIMIT :limit")
     fun observeLatest(limit: Int): Flow<List<EpisodeItem>>
 
     @Query("$EPISODE_ITEM WHERE e.downloadState != 0 ORDER BY e.downloadState = 3, e.pubDate DESC")

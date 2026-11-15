@@ -19,10 +19,12 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,6 +69,7 @@ fun PreviewScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val subscribing by viewModel.subscribing.collectAsStateWithLifecycle()
     val subscribedId by viewModel.subscribedId.collectAsStateWithLifecycle()
+    val starting by viewModel.starting.collectAsStateWithLifecycle()
     var expanded by rememberSaveable { mutableStateOf(false) }
 
     CoverTheme((state as? PreviewState.Loaded)?.feed?.imageUrl ?: initialImage) {
@@ -165,6 +168,16 @@ fun PreviewScreen(
                                     )
                                 },
                                 leadingContent = { Artwork(ep.imageUrl ?: feed.imageUrl, size = 48.dp, corner = 10.dp) },
+                                // Si può ascoltare anche senza iscriversi.
+                                trailingContent = {
+                                    if (starting == ep.guid) {
+                                        LoadingIndicator(Modifier.size(40.dp))
+                                    } else {
+                                        FilledTonalIconButton(onClick = { viewModel.play(ep.guid) }, enabled = starting == null) {
+                                            Icon(Icons.Rounded.PlayArrow, stringResource(R.string.play))
+                                        }
+                                    }
+                                },
                             )
                         }
                     }

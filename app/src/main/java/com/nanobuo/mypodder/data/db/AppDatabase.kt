@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [Podcast::class, Episode::class, QueueEntry::class, Chapter::class, ListeningEntry::class, RemoteListening::class,
         AdSegment::class, AdAnalysis::class],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -51,6 +51,13 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE podcasts ADD COLUMN skipIntroMs INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE podcasts ADD COLUMN skipOutroMs INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE podcasts ADD COLUMN settingsUpdatedAt INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** v7: podcast ascoltati senza iscriversi (dall'anteprima). */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE podcasts ADD COLUMN subscribed INTEGER NOT NULL DEFAULT 1")
             }
         }
 

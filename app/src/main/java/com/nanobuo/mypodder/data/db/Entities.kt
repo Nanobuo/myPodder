@@ -26,6 +26,12 @@ data class Podcast(
     val skipOutroMs: Long = 0,
     /** Ultima modifica dei salti su questo dispositivo: base della sincronizzazione. */
     val settingsUpdatedAt: Long = 0,
+    /**
+     * false per i podcast non seguiti di cui si è ascoltato un episodio dall'anteprima: restano
+     * nel database (cronologia, coda, posizione) ma non compaiono tra le iscrizioni.
+     * In quel caso [subscribedAt] è il momento dell'aggiunta.
+     */
+    val subscribed: Boolean = true,
 )
 
 /** Podcast con il numero di episodi nuovi, per il badge nella libreria. */

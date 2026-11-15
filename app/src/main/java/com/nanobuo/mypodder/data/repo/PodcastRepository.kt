@@ -55,7 +55,33 @@ class PodcastRepository @Inject constructor(
 
     /** Si iscrive al feed (se non già presente) e restituisce l'id del podcast. */
     suspend fun subscribe(feedUrl: String, preloaded: ParsedFeed? = null): Long {
-        podcastDao.getByUrl(feedUrl)?.let { return it.id }
+        podcastDao.getByUrl(feedUrl)?.let { existing ->
+            // Già presente perché ascoltato dall'anteprima: diventa un'iscrizione vera.
+            if (!existing.subscribed) {
+                podcastDao.markSubscribed(existing.id)
+                runCatching { refresh(existing.id) }
+            }
+            return existing.id
+        }
+        return add(feedUrl, preloaded, subscribed = true)
+    }
+
+    /**
+     * Rende ascoltabili gli episodi di un podcast senza iscriversi: il podcast resta nel database
+     * ma non compare tra le iscrizioni. Restituisce l'id dell'episodio con `guid`.
+     */
+    suspend fun episodeForPreview(feedUrl: String, preloaded: ParsedFeed, guid: String): Long? {
+        val podcastId = podcastDao.getByUrl(feedUrl)?.id ?: add(feedUrl, preloaded, subscribed = false)
+        episodeDao.idFor(feedUrl, guid)?.let { return it }
+        // Episodio uscito dopo l'ultimo aggiornamento del podcast salvato.
+        insertEpisodes(podcastId, preloaded.episodes.filter { it.guid == guid }, markNew = false)
+        return episodeDao.idFor(feedUrl, guid)
+    }
+
+    /** Podcast ascoltati solo dall'anteprima e non più usati da almeno un giorno. */
+    suspend fun cleanUpPreviews() = podcastDao.deleteUnusedPreviews(System.currentTimeMillis() - 24 * 3600_000L)
+
+    private suspend fun add(feedUrl: String, preloaded: ParsedFeed?, subscribed: Boolean): Long {
         val feed = preloaded ?: fetchFeed(feedUrl)
         return db.withTransaction {
             val id = podcastDao.insert(
@@ -68,6 +94,7 @@ class PodcastRepository @Inject constructor(
                     link = feed.link,
                     categories = feed.categories.joinToString("|").ifEmpty { null },
                     lastRefreshed = System.currentTimeMillis(),
+                    subscribed = subscribed,
                 )
             )
             insertEpisodes(id, feed.episodes, markNew = false)
